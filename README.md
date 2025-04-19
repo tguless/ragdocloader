@@ -13,6 +13,7 @@ DocLoader is a Spring Boot and React-based SaaS platform for tracking embedding 
 - **Additional Services**:
   - Redis (user session management)
   - Quartz (job scheduling)
+  - MinIO (S3-compatible storage for local development)
 
 ## Technical Implementation Details
 
@@ -27,6 +28,9 @@ The platform implements a database-per-tenant approach for strong data isolation
    - Subdomain-based resolution (e.g., tenant1.docloader.com)
    - Header-based resolution (using X-TenantID header)
    - Path-based resolution
+5. **Tenant-specific Storage**: Each tenant can configure their own S3 storage details:
+   - Custom S3 endpoint, region, credentials and bucket
+   - Support for various S3-compatible storage services (AWS S3, MinIO, etc.)
 
 ### Security Implementation
 
@@ -49,11 +53,48 @@ The document processing system follows these steps:
    - Builds document relationships in Neo4j
 4. **Duplicate Detection**: Uses MD5 hashing to avoid reprocessing the same documents.
 
+### Document Relationship Building
+
+The system identifies and persists relationships between documents using the following approach:
+
+1. **Embedding-based Similarity Detection**:
+   - Each document is represented by its embedding vector in high-dimensional space
+   - Cosine similarity between document vectors measures semantic relatedness
+   - Documents with similarity scores above a configurable threshold (default: 0.7) are considered related
+   - The implementation uses Weaviate's vector search capabilities to efficiently find similar documents
+
+2. **Relationship Enrichment**:
+   - Beyond vector similarity, relationships are enhanced with additional metadata:
+     - Similarity score (a numeric value between 0-1)
+     - Relationship type (e.g., "SEMANTIC", "CITATION", "SAME_AUTHOR")
+     - Relationship creation timestamp
+     - Domain-specific relationship properties
+
+3. **Neo4j Relationship Persistence**:
+   - Document relationships are stored in Neo4j using the following pattern:
+     ```cypher
+     (doc1:Document)-[:RELATED_TO {similarity: 0.87, relationship_type: "SEMANTIC", created_at: timestamp}]->(doc2:Document)
+     ```
+   - This graph structure enables powerful queries for relationship exploration
+
+4. **Advanced Relationship Types**:
+   - Citation Analysis: Extract and link documents based on direct references
+   - Entity Co-occurrence: Identify documents mentioning the same entities
+   - Temporal Proximity: Link documents created in similar timeframes
+   - Thematic Analysis: Group documents by detected themes or topics
+
+5. **Relationship API**:
+   - The system exposes endpoints to query document relationships
+   - Results can be filtered by relationship type and minimum similarity threshold
+   - Relationship depth can be specified (1st-degree, 2nd-degree connections, etc.)
+
+This approach creates a rich knowledge graph of document relationships that can be traversed, queried, and visualized through the application, enabling users to discover connections that might otherwise remain hidden.
+
 ### Data Models
 
 Core entities in the system:
 
-- **Tenant**: Represents an organization with its own isolated database.
+- **Tenant**: Represents an organization with its own isolated database and storage.
 - **User**: Users belonging to tenants with role-based permissions.
 - **DocumentJob**: Represents a document processing job with status tracking.
 - **Document**: Represents a processed document with embedding information.
@@ -82,7 +123,7 @@ The platform exposes these key API endpoints:
 docker-compose up -d
 ```
 
-This command starts PostgreSQL, Neo4j, Redis, and Weaviate services.
+This command starts PostgreSQL, Neo4j, Redis, Weaviate and MinIO services.
 
 ### 2. Build and Run the Backend
 
@@ -120,6 +161,9 @@ OPENAI_BASE_URL=https://api.openai.com
 AWS_ACCESS_KEY=your-aws-access-key
 AWS_SECRET_KEY=your-aws-secret-key
 AWS_REGION=us-east-1
+S3_ENDPOINT=your-s3-endpoint  # Required for non-AWS S3 services like MinIO
+S3_BUCKET_NAME=your-bucket-name
+S3_PATH_STYLE=true  # Required for MinIO compatibility
 ```
 
 ## Development Notes
@@ -128,4 +172,6 @@ AWS_REGION=us-east-1
 - The application uses separate users for liquibase migrations and normal application operations
 - Redis is used for session management to ensure scalability
 - The multi-tenant architecture supports horizontal scaling for increased load
-- Document processing is executed asynchronously to avoid blocking API responses 
+- Document processing is executed asynchronously to avoid blocking API responses
+- A test tenant with MinIO configuration is automatically created for local development
+- Document relationships are built incrementally as new documents are processed 
