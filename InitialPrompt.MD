@@ -9,3 +9,7 @@ Each tenant gets their own user database, with 2 permission levels for now. We w
 To make and track the Postgres database schema changes we want to use liquibase, but make sure the privileged liquibase user is not the same as the application user. We like to number the liquibase changeset filenames in the format 0000x  e.g. 00001-descriptionx, 00002-otherdescription, etc. 
 
 Make sure we always have multi-tenancy in mind. 
+
+Let's use a modern GUI framework like Material UI. 
+
+Let us make sure we are using an up-to-date version of Spring Boot, ReactJS, Material UI, Postgres etc. 
