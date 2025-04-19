@@ -1,0 +1,24 @@
+<!-- Tenant Configuration -->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.4.xsd">
+
+    <!-- No S3 configuration fields added to tenants table, using S3BucketConfig entity instead -->
+    
+    <!-- Create test tenant for local development -->
+    <changeSet id="00002-02" author="docloader" context="dev,test">
+        <comment>Create test tenant</comment>
+        
+        <insert tableName="tenants" schemaName="app">
+            <column name="id" value="00000000-0000-0000-0000-000000000001"/>
+            <column name="name" value="Test Tenant"/>
+            <column name="subdomain" value="test"/>
+            <column name="db_name" value="tenant_test"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog> 

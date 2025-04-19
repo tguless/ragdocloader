@@ -34,4 +34,22 @@ public class TenantRequest {
     @Size(max = 100)
     @Email
     private String adminEmail;
+    
+    // S3 configuration (optional)
+    @Size(max = 255)
+    private String s3Endpoint;
+    
+    @Size(max = 50)
+    private String s3Region;
+    
+    @Size(max = 255)
+    private String s3AccessKey;
+    
+    @Size(max = 255)
+    private String s3SecretKey;
+    
+    @Size(max = 255)
+    private String s3BucketName;
+    
+    private Boolean s3PathStyleAccess;
 } 

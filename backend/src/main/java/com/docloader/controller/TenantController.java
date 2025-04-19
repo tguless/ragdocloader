@@ -51,6 +51,14 @@ public class TenantController {
             tenant.setName(tenantRequest.getName());
             tenant.setSubdomain(tenantRequest.getSubdomain());
             
+            // Set S3 configuration if provided
+            tenant.setS3Endpoint(tenantRequest.getS3Endpoint());
+            tenant.setS3Region(tenantRequest.getS3Region());
+            tenant.setS3AccessKey(tenantRequest.getS3AccessKey());
+            tenant.setS3SecretKey(tenantRequest.getS3SecretKey());
+            tenant.setS3BucketName(tenantRequest.getS3BucketName());
+            tenant.setS3PathStyleAccess(tenantRequest.getS3PathStyleAccess());
+            
             // Create the tenant
             Tenant savedTenant = tenantService.createTenant(tenant);
             
@@ -86,6 +94,14 @@ public class TenantController {
             tenant.setName(tenantRequest.getName());
             tenant.setSubdomain(tenantRequest.getSubdomain());
             
+            // Set S3 configuration if provided
+            tenant.setS3Endpoint(tenantRequest.getS3Endpoint());
+            tenant.setS3Region(tenantRequest.getS3Region());
+            tenant.setS3AccessKey(tenantRequest.getS3AccessKey());
+            tenant.setS3SecretKey(tenantRequest.getS3SecretKey());
+            tenant.setS3BucketName(tenantRequest.getS3BucketName());
+            tenant.setS3PathStyleAccess(tenantRequest.getS3PathStyleAccess());
+            
             // Create the tenant
             Tenant savedTenant = tenantService.createTenant(tenant);
             
@@ -120,6 +136,31 @@ public class TenantController {
             
             existingTenant.setName(tenantRequest.getName());
             // We don't update subdomain as that would require database migration
+            
+            // Update S3 configuration if provided
+            if (tenantRequest.getS3Endpoint() != null) {
+                existingTenant.setS3Endpoint(tenantRequest.getS3Endpoint());
+            }
+            
+            if (tenantRequest.getS3Region() != null) {
+                existingTenant.setS3Region(tenantRequest.getS3Region());
+            }
+            
+            if (tenantRequest.getS3AccessKey() != null) {
+                existingTenant.setS3AccessKey(tenantRequest.getS3AccessKey());
+            }
+            
+            if (tenantRequest.getS3SecretKey() != null) {
+                existingTenant.setS3SecretKey(tenantRequest.getS3SecretKey());
+            }
+            
+            if (tenantRequest.getS3BucketName() != null) {
+                existingTenant.setS3BucketName(tenantRequest.getS3BucketName());
+            }
+            
+            if (tenantRequest.getS3PathStyleAccess() != null) {
+                existingTenant.setS3PathStyleAccess(tenantRequest.getS3PathStyleAccess());
+            }
             
             Tenant updatedTenant = tenantService.updateTenant(id, existingTenant);
             return ResponseEntity.ok(updatedTenant);

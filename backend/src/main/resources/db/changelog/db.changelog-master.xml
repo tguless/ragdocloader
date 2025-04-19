@@ -10,5 +10,9 @@
 
     <!-- Include all changelog files in order -->
     <include file="changes/00001-initial-schema.xml" relativeToChangelogFile="true"/>
+    <include file="changes/00002-tenant-s3-config.xml" relativeToChangelogFile="true"/>
     
+    <!-- Include S3 bucket configuration schema -->
+    <include file="changes/00003-s3-bucket-configs.xml" relativeToChangelogFile="true"/>
+
 </databaseChangeLog> 

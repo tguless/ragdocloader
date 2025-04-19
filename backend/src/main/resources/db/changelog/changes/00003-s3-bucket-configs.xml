@@ -1,0 +1,116 @@
+<!-- S3 Bucket Configuration Entity -->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.4.xsd">
+
+    <changeSet id="00003-01" author="docloader">
+        <comment>Create S3 bucket configurations table</comment>
+        
+        <createTable tableName="s3_bucket_configs" schemaName="app">
+            <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="bucket_name" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_default" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="endpoint" type="varchar(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="region" type="varchar(50)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="access_key" type="varchar(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="secret_key" type="varchar(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="path_style_access" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tenant_id" type="uuid">
+                <constraints nullable="false" 
+                             foreignKeyName="fk_s3_bucket_config_tenant"
+                             references="app.tenants(id)"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        
+        <!-- Add unique constraint for name per tenant -->
+        <addUniqueConstraint tableName="s3_bucket_configs" 
+                             columnNames="tenant_id, name" 
+                             constraintName="uk_s3_bucket_config_tenant_name"
+                             schemaName="app"/>
+                             
+        <!-- Add index for faster lookups by tenant_id -->
+        <createIndex tableName="s3_bucket_configs" 
+                     indexName="idx_s3_bucket_config_tenant_id"
+                     schemaName="app">
+            <column name="tenant_id"/>
+        </createIndex>
+        
+        <!-- Add index for faster lookups by is_default -->
+        <createIndex tableName="s3_bucket_configs" 
+                     indexName="idx_s3_bucket_config_is_default"
+                     schemaName="app">
+            <column name="is_default"/>
+        </createIndex>
+    </changeSet>
+    
+    <changeSet id="00003-02" author="docloader">
+        <comment>Modify tenant table to make S3 bucket name field nullable</comment>
+        <dropNotNullConstraint tableName="tenants" 
+                              columnName="s3_bucket_name" 
+                              schemaName="app"/>
+    </changeSet>
+    
+    <!-- Create S3 bucket configuration for test tenant -->
+    <changeSet id="00003-03" author="docloader" context="dev,test">
+        <comment>Create S3 bucket configuration for test tenant</comment>
+        
+        <insert tableName="s3_bucket_configs" schemaName="app">
+            <column name="id" value="00000000-0000-0000-0000-000000000001"/>
+            <column name="name" value="Default MinIO"/>
+            <column name="bucket_name" value="test-tenant"/>
+            <column name="is_default" valueBoolean="true"/>
+            <column name="endpoint" value="http://minio:9000"/>
+            <column name="region" value="us-east-1"/>
+            <column name="access_key" value="minio_access_key"/>
+            <column name="secret_key" value="minio_secret_key"/>
+            <column name="path_style_access" valueBoolean="true"/>
+            <column name="tenant_id" value="00000000-0000-0000-0000-000000000001"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        
+        <!-- Add second bucket configuration for test tenant to demonstrate multiple configs -->
+        <insert tableName="s3_bucket_configs" schemaName="app">
+            <column name="id" value="00000000-0000-0000-0000-000000000002"/>
+            <column name="name" value="Archive Storage"/>
+            <column name="bucket_name" value="test-tenant-archive"/>
+            <column name="is_default" valueBoolean="false"/>
+            <column name="endpoint" value="http://minio:9000"/>
+            <column name="region" value="us-east-1"/>
+            <column name="access_key" value="minio_access_key"/>
+            <column name="secret_key" value="minio_secret_key"/>
+            <column name="path_style_access" valueBoolean="true"/>
+            <column name="tenant_id" value="00000000-0000-0000-0000-000000000001"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog> 
