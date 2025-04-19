@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd
+                      http://www.liquibase.org/xml/ns/dbchangelog-ext
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <changeSet id="00001-01" author="docloader">
+        <comment>Create extensions</comment>
+        <sql>
+            CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        </sql>
+    </changeSet>
+
+    <changeSet id="00001-02" author="docloader">
+        <comment>Create app schema</comment>
+        <sql>
+            CREATE SCHEMA IF NOT EXISTS app;
+        </sql>
+    </changeSet>
+
+    <!-- Quartz tables for job scheduling -->
+    <changeSet id="00001-03" author="docloader">
+        <comment>Create Quartz tables</comment>
+        <sqlFile path="quartz-schema.sql" relativeToChangelogFile="true"/>
+    </changeSet>
+
+    <!-- Tenant management tables -->
+    <changeSet id="00001-04" author="docloader">
+        <comment>Create tenant management tables</comment>
+        
+        <createTable tableName="tenants" schemaName="app">
+            <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="subdomain" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="db_name" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        
+        <createTable tableName="roles" schemaName="app">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="description" type="text"/>
+        </createTable>
+        
+        <createTable tableName="users" schemaName="app">
+            <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_user_tenant" references="app.tenants(id)"/>
+            </column>
+            <column name="username" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="password_hash" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role_id" type="int">
+                <constraints nullable="false" foreignKeyName="fk_user_role" references="app.roles(id)"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        
+        <addUniqueConstraint 
+            constraintName="uk_tenant_username"
+            tableName="users"
+            schemaName="app"
+            columnNames="tenant_id, username"/>
+            
+        <addUniqueConstraint 
+            constraintName="uk_tenant_email"
+            tableName="users"
+            schemaName="app"
+            columnNames="tenant_id, email"/>
+    </changeSet>
+    
+    <!-- Insert default roles -->
+    <changeSet id="00001-05" author="docloader">
+        <comment>Insert default roles</comment>
+        
+        <insert tableName="roles" schemaName="app">
+            <column name="name" value="ADMIN"/>
+            <column name="description" value="Administrator with full privileges"/>
+        </insert>
+        
+        <insert tableName="roles" schemaName="app">
+            <column name="name" value="USER"/>
+            <column name="description" value="Regular user with limited access"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog> 
