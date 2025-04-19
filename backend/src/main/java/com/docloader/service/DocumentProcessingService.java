@@ -5,25 +5,40 @@ import com.docloader.model.DocumentJob;
 import com.docloader.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.embedding.EmbeddingClient;
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletableFuture;  
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class DocumentProcessingService {
 
     private final DocumentJobService documentJobService;
     private final DocumentRepository documentRepository;
-    private final EmbeddingClient embeddingClient;
+    private final EmbeddingModel embeddingModel;
     private final S3Service s3Service;
-    private final WeaviateService weaviateService;
-    private final Neo4jService neo4jService;
+    
+    @Autowired(required = false)
+    private WeaviateService weaviateService;
+    
+    @Autowired(required = false)
+    private Neo4jService neo4jService;
+
+    public DocumentProcessingService(
+            DocumentJobService documentJobService,
+            DocumentRepository documentRepository,
+            EmbeddingModel embeddingModel,
+            S3Service s3Service) {
+        this.documentJobService = documentJobService;
+        this.documentRepository = documentRepository;
+        this.embeddingModel = embeddingModel;
+        this.s3Service = s3Service;
+    }
 
     @Async
     public CompletableFuture<Void> processJobAsync(UUID jobId) {

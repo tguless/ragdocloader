@@ -2,6 +2,7 @@ package com.docloader.scheduler;
 
 import com.docloader.model.DocumentJob;
 import com.docloader.service.DocumentJobService;
+import com.docloader.service.DocumentProcessingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
