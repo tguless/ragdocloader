@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: postgres_admin
       POSTGRES_DB: docloader
     ports:
-      - "5432:5432"
+      - "8098:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts/postgres:/docker-entrypoint-initdb.d
@@ -70,7 +70,7 @@ services:
     image: semitechnologies/weaviate:1.21.2
     container_name: docloader-weaviate
     ports:
-      - "8080:8080"
+      - "8097:8080"
     environment:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
