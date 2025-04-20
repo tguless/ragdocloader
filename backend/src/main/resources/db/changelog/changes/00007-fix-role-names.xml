@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="00007-01" author="docloader">
+        <comment>Update role names to include ROLE_ prefix for Spring Security compatibility</comment>
+        
+        <update tableName="roles" schemaName="app">
+            <column name="name" value="ROLE_SYSTEM_ADMIN"/>
+            <where>name='SYSTEM_ADMIN'</where>
+        </update>
+        
+        <update tableName="roles" schemaName="app">
+            <column name="name" value="ROLE_ADMIN"/>
+            <where>name='ADMIN'</where>
+        </update>
+        
+        <update tableName="roles" schemaName="app">
+            <column name="name" value="ROLE_USER"/>
+            <where>name='USER'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog> 

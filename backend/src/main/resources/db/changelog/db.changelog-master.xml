@@ -23,5 +23,17 @@
     
     <!-- Include test admin user creation -->
     <include file="changes/00006-create-test-admin.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Fix role names to include ROLE_ prefix for Spring Security -->
+    <include file="changes/00007-fix-role-names.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Fix tenant database name to match UUID format -->
+    <include file="changes/00008-fix-tenant-dbname.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Move create_tenant_database function from init.sql to Liquibase -->
+    <include file="changes/00009-move-function-to-liquibase.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Initialize schema for the test tenant -->
+    <include file="changes/00010-initialize-test-tenant-schema.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog> 

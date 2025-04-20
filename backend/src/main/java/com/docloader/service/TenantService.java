@@ -74,14 +74,16 @@ public class TenantService {
             throw new IllegalArgumentException("Subdomain already exists: " + tenant.getSubdomain());
         }
         
-        // Create DB name from subdomain
-        tenant.setDbName("tenant_" + tenant.getSubdomain());
+        // Create schema name from tenant ID (will be created after the tenant is saved)
+        // Will store the schema name with underscores instead of hyphens to be PostgreSQL compatible
+        String uuidStr = UUID.randomUUID().toString().replace("-", "_");
+        tenant.setDbName("tenant_" + uuidStr);
         
         // Save tenant in the main database
         Tenant savedTenant = tenantRepository.save(tenant);
         
-        // Create the tenant database using the PostgreSQL function
-        createTenantDatabase(savedTenant.getName(), savedTenant.getSubdomain());
+        // Create the tenant schema using the PostgreSQL function
+        createTenantSchema(savedTenant.getName(), savedTenant.getId().toString().replace("-", "_"));
         
         // Create S3 bucket configuration for the tenant
         try {
@@ -115,23 +117,23 @@ public class TenantService {
         // We should consider implementing a soft delete instead, and archive tenant data
         tenantRepository.delete(tenant);
         
-        // Optionally drop the tenant database, but this is dangerous and should have safeguards
-        // dropTenantDatabase(tenant.getDbName());
+        // Optionally drop the tenant schema, but this is dangerous and should have safeguards
+        // dropTenantSchema(tenant.getDbName());
     }
     
-    private UUID createTenantDatabase(String name, String subdomain) {
-        // Use the PostgreSQL function we created in init.sql to create the tenant database
+    private UUID createTenantSchema(String name, String schemaId) {
+        // Use the PostgreSQL function to create the tenant schema
         return jdbcTemplate.queryForObject(
                 "SELECT app.create_tenant_database(?, ?)", 
                 UUID.class, 
                 name, 
-                subdomain);
+                schemaId);
     }
     
     // This is dangerous and should be used with caution - consider not implementing this at all
-    private void dropTenantDatabase(String dbName) {
+    private void dropTenantSchema(String schemaName) {
         // Implement additional safety checks before allowing this operation
-        log.warn("Request to drop tenant database: {}", dbName);
-        // jdbcTemplate.execute("DROP DATABASE IF EXISTS " + dbName);
+        log.warn("Request to drop tenant schema: {}", schemaName);
+        // jdbcTemplate.execute("DROP SCHEMA IF EXISTS " + schemaName + " CASCADE");
     }
 } 

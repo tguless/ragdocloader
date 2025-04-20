@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 import java.util.HashMap;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Slf4j
 public class AuthController {
