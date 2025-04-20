@@ -1,3 +1,36 @@
+# DocLoader - Document Intelligence Platform
+
+<p align="center">
+  <img src="frontend/public/docloader-logo.svg" alt="DocLoader Logo" width="180"/>
+</p>
+
+<p align="center">
+  <b>Unlock the hidden connections in your document repository</b>
+</p>
+
+## Transform Your Document Management
+
+DocLoader is an intelligent document processing platform that goes beyond simple storage. Our advanced AI-powered system automatically processes, analyzes, and connects your documents, revealing relationships and insights that would otherwise remain hidden.
+
+### 🚀 Key Features
+
+- **Smart Document Processing**: Automatically extract and index content from multiple document formats
+- **AI-Powered Embeddings**: Transform documents into rich vector embeddings for semantic search and analysis
+- **Relationship Discovery**: Automatically identify connections between documents through semantic similarity
+- **Knowledge Graph Generation**: Visualize document relationships through an intuitive graph interface
+- **Multi-Tenant Architecture**: Enterprise-ready with isolated tenant databases for maximum security
+- **Cloud Storage Integration**: Connect directly to your existing S3 storage infrastructure
+
+### 💼 Business Benefits
+
+- **Reduce Research Time**: Find relevant documents instantly instead of manual searching
+- **Discover Hidden Insights**: Uncover connections between documents that humans might miss
+- **Enhance Collaboration**: Share document collections and their relationships across teams
+- **Maintain Security**: Keep sensitive documents secure with our multi-tenant architecture
+- **Leverage Existing Infrastructure**: Connect to your current cloud storage without migration
+
+---
+
 # DocLoader - Document Embedding & Relationship Platform
 
 DocLoader is a Spring Boot and React-based SaaS platform for tracking embedding operations of documents hosted on tenant's cloud storage. The application provides multi-tenancy support, job scheduling, and document relationship management.
@@ -175,3 +208,9 @@ S3_PATH_STYLE=true  # Required for MinIO compatibility
 - Document processing is executed asynchronously to avoid blocking API responses
 - A test tenant with MinIO configuration is automatically created for local development
 - Document relationships are built incrementally as new documents are processed 
+
+## About DocLoader
+
+DocLoader was built to solve the growing challenge of information overload in document management. In today's knowledge economy, organizations struggle to extract meaningful insights from their document repositories. DocLoader turns your document storage from a passive archive into an active knowledge base that continuously improves as more documents are processed.
+
+For inquiries or custom deployments, contact us at info@docloader.com 

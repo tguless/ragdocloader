@@ -13,15 +13,22 @@ import TenantDetail from './pages/tenants/TenantDetail';
 import Profile from './pages/user/Profile';
 import Settings from './pages/user/Settings';
 import S3BucketSettings from './pages/settings/S3BucketSettings';
+import LandingPage from './components/LandingPage';
 import NotFound from './pages/NotFound';
 import { useAuth } from './context/AuthContext';
 
 function App() {
-  const { isAdmin, isSystemAdmin } = useAuth();
+  const { isAdmin, isSystemAdmin, isAuthenticated } = useAuth();
 
   return (
     <Routes>
       {/* Public routes */}
+      <Route path="/" element={
+        <MainLayout requireAuth={false}>
+          {isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />}
+        </MainLayout>
+      } />
+      
       <Route path="/login" element={
         <MainLayout requireAuth={false}>
           <Login />
@@ -39,8 +46,6 @@ function App() {
       } />
 
       {/* Protected routes */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      
       <Route path="/dashboard" element={
         <MainLayout>
           <Dashboard />
