@@ -63,6 +63,8 @@ public class SecurityConfig {
                 .requestMatchers("/health/**").permitAll()
                 .requestMatchers("/tenants/register").permitAll()
                 .requestMatchers("/test/**").permitAll()
+                .requestMatchers("/api/error").permitAll()
+                .requestMatchers("/error").permitAll()
                 // All other requests need authentication
                 .anyRequest().authenticated()
             );
