@@ -1,157 +1,61 @@
--- Create application user with restricted permissions
-CREATE USER app_user WITH PASSWORD 'app_user_password';
+-- Create the app schema
+CREATE SCHEMA IF NOT EXISTS app;
 
--- Create Liquibase user with more privileges for schema migrations
+-- Create the liquibase user with appropriate privileges
 CREATE USER liquibase_user WITH PASSWORD 'liquibase_password';
 
--- Create a template database for tenants
-CREATE DATABASE tenant_template;
-\c tenant_template
+-- Give liquibase_user superuser privileges to ensure it can do anything needed for migrations
+ALTER USER liquibase_user WITH SUPERUSER;
 
--- Create extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Basic schema setup
-CREATE SCHEMA IF NOT EXISTS app;
-CREATE SCHEMA IF NOT EXISTS tenant;
-
--- Create tables in the app schema
-CREATE TABLE app.tenants (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    subdomain VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create role based permissions tables
-CREATE TABLE app.roles (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT
-);
-
--- Insert default roles
-INSERT INTO app.roles (name, description) VALUES 
-('ADMIN', 'Administrator with full privileges'),
-('USER', 'Regular user with limited access');
-
--- Create users table for service management
-CREATE TABLE app.users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    tenant_id UUID NOT NULL REFERENCES app.tenants(id),
-    username VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role_id INTEGER NOT NULL REFERENCES app.roles(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(tenant_id, username),
-    UNIQUE(tenant_id, email)
-);
-
--- Create tenant schema templates
-CREATE SCHEMA IF NOT EXISTS tenant_template;
-
--- Document processing jobs table
-CREATE TABLE tenant_template.document_jobs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    source_location TEXT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-    created_by UUID NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    scheduled_time TIMESTAMP WITH TIME ZONE,
-    completed_time TIMESTAMP WITH TIME ZONE
-);
-
--- Processed documents table
-CREATE TABLE tenant_template.documents (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    job_id UUID NOT NULL REFERENCES tenant_template.document_jobs(id),
-    filename VARCHAR(255) NOT NULL,
-    file_path TEXT NOT NULL,
-    file_size BIGINT,
-    content_type VARCHAR(100),
-    processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    embedding_vector_id VARCHAR(255),
-    status VARCHAR(50) DEFAULT 'PROCESSED',
-    md5_hash VARCHAR(32) NOT NULL,
-    UNIQUE(file_path, md5_hash)
-);
-
--- Grant permissions to application user
-GRANT CONNECT ON DATABASE tenant_template TO app_user;
-GRANT USAGE ON SCHEMA app TO app_user;
-GRANT USAGE ON SCHEMA tenant_template TO app_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA app TO app_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA tenant_template TO app_user;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA app TO app_user;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA tenant_template TO app_user;
-
--- Grant permissions to liquibase user
-GRANT CONNECT ON DATABASE tenant_template TO liquibase_user;
-GRANT USAGE, CREATE ON SCHEMA app TO liquibase_user;
-GRANT USAGE, CREATE ON SCHEMA tenant_template TO liquibase_user;
+-- Grant all privileges on the database
+GRANT ALL PRIVILEGES ON DATABASE docloader TO liquibase_user;
+GRANT ALL PRIVILEGES ON SCHEMA app TO liquibase_user;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA app TO liquibase_user;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA tenant_template TO liquibase_user;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA app TO liquibase_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA tenant_template TO liquibase_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT ALL PRIVILEGES ON TABLES TO liquibase_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT ALL PRIVILEGES ON SEQUENCES TO liquibase_user;
 
--- Connect back to default docloader database
-\c docloader
-
--- Create extensions 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Create schemas
-CREATE SCHEMA IF NOT EXISTS app;
-
--- Create tenant management tables
-CREATE TABLE app.tenants (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    subdomain VARCHAR(255) NOT NULL UNIQUE,
-    db_name VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Grant appropriate permissions
+-- Create the application user with appropriate privileges for running the application
+CREATE USER app_user WITH PASSWORD 'app_user_password';
 GRANT CONNECT ON DATABASE docloader TO app_user;
 GRANT USAGE ON SCHEMA app TO app_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA app TO app_user;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA app TO app_user;
+-- Grant ALL privileges instead of just SELECT, INSERT, UPDATE, DELETE
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA app TO app_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA app TO app_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT ALL PRIVILEGES ON TABLES TO app_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT ALL PRIVILEGES ON SEQUENCES TO app_user;
 
-GRANT CONNECT ON DATABASE docloader TO liquibase_user;
-GRANT USAGE, CREATE ON SCHEMA app TO liquibase_user;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA app TO liquibase_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA app TO liquibase_user;
+-- Also grant privileges on public schema for Quartz tables
+GRANT USAGE ON SCHEMA public TO app_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO app_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO app_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO app_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO app_user;
 
--- Create a PL/pgSQL function to create a new tenant database
-CREATE OR REPLACE FUNCTION app.create_tenant_database(tenant_name VARCHAR, subdomain VARCHAR)
-RETURNS UUID AS $$
+-- Create a function to handle multi-tenancy database creation
+CREATE OR REPLACE FUNCTION app.create_tenant_database(
+    tenant_name TEXT, 
+    tenant_subdomain TEXT
+) RETURNS UUID AS $$
 DECLARE
     tenant_id UUID;
-    db_name VARCHAR;
 BEGIN
-    -- Generate database name from subdomain
-    db_name := 'tenant_' || subdomain;
+    -- Generate UUID for new tenant
+    tenant_id := gen_random_uuid();
     
-    -- Insert tenant record
-    INSERT INTO app.tenants (name, subdomain, db_name)
-    VALUES (tenant_name, subdomain, db_name)
-    RETURNING id INTO tenant_id;
+    -- Create tenant's schema (using tenant_subdomain for uniqueness)
+    EXECUTE format('CREATE SCHEMA IF NOT EXISTS tenant_%s', tenant_subdomain);
     
-    -- Create the tenant database by cloning the template
-    EXECUTE 'CREATE DATABASE ' || quote_ident(db_name) || ' TEMPLATE tenant_template';
+    -- Grant privileges to the liquibase user
+    EXECUTE format('GRANT ALL PRIVILEGES ON SCHEMA tenant_%s TO liquibase_user', tenant_subdomain);
+    EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA tenant_%s GRANT ALL PRIVILEGES ON TABLES TO liquibase_user', tenant_subdomain);
+    EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA tenant_%s GRANT ALL PRIVILEGES ON SEQUENCES TO liquibase_user', tenant_subdomain);
     
-    -- Grant permissions on the new database
-    EXECUTE 'GRANT CONNECT ON DATABASE ' || quote_ident(db_name) || ' TO app_user';
-    EXECUTE 'GRANT CONNECT ON DATABASE ' || quote_ident(db_name) || ' TO liquibase_user';
+    -- Grant privileges to the application user (ALL privileges instead of limited ones)
+    EXECUTE format('GRANT USAGE ON SCHEMA tenant_%s TO app_user', tenant_subdomain);
+    EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA tenant_%s GRANT ALL PRIVILEGES ON TABLES TO app_user', tenant_subdomain);
+    EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA tenant_%s GRANT ALL PRIVILEGES ON SEQUENCES TO app_user', tenant_subdomain);
     
     RETURN tenant_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER; 
+$$ LANGUAGE plpgsql; 

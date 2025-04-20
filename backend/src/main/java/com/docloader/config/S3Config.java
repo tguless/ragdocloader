@@ -42,7 +42,7 @@ public class S3Config {
     public S3Client s3Client() {
         AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKey, secretKey);
         
-        S3Client.Builder s3ClientBuilder = S3Client.builder()
+        var builder = S3Client.builder()
                 .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
                 .region(Region.of(region))
                 .httpClient(ApacheHttpClient.builder()
@@ -51,17 +51,17 @@ public class S3Config {
         
         // For local testing with MinIO, we use a custom endpoint and path-style access
         if (endpoint != null && !endpoint.isEmpty()) {
-            s3ClientBuilder.endpointOverride(URI.create(endpoint));
+            builder.endpointOverride(URI.create(endpoint));
         }
         
         if (pathStyleAccess) {
-            s3ClientBuilder.serviceConfiguration(
+            builder.serviceConfiguration(
                     software.amazon.awssdk.services.s3.S3Configuration.builder()
                             .pathStyleAccessEnabled(true)
                             .build());
         }
         
-        return s3ClientBuilder.build();
+        return builder.build();
     }
     
     @Bean
@@ -71,24 +71,24 @@ public class S3Config {
                 .connectionTimeout(Duration.ofSeconds(30))
                 .build();
         
-        S3AsyncClient.Builder s3AsyncClientBuilder = S3AsyncClient.builder()
+        var builder = S3AsyncClient.builder()
                 .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
                 .region(Region.of(region))
                 .httpClient(httpClient);
         
         // For local testing with MinIO, we use a custom endpoint and path-style access
         if (endpoint != null && !endpoint.isEmpty()) {
-            s3AsyncClientBuilder.endpointOverride(URI.create(endpoint));
+            builder.endpointOverride(URI.create(endpoint));
         }
         
         if (pathStyleAccess) {
-            s3AsyncClientBuilder.serviceConfiguration(
+            builder.serviceConfiguration(
                     software.amazon.awssdk.services.s3.S3Configuration.builder()
                             .pathStyleAccessEnabled(true)
                             .build());
         }
         
-        return s3AsyncClientBuilder.build();
+        return builder.build();
     }
     
     @Bean(name = "s3BucketName")

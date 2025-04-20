@@ -12,4 +12,8 @@ Make sure we always have multi-tenancy in mind.
 
 Let's use a modern GUI framework like Material UI. 
 
+In order to not take a whole lot of real-estate on the phone, let's use the old hamburger menu trick to slide out a left nav from the left side when the hamburger icon is pressed at the top left.
+
 Let us make sure we are using an up-to-date version of Spring Boot, ReactJS, Material UI, Postgres etc. 
+
+Let us make sure the liquibase changesets tables are in the same schema as the app. 

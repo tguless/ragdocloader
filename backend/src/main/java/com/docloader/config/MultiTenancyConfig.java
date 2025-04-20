@@ -68,9 +68,9 @@ public class MultiTenancyConfig {
         em.setJpaVendorAdapter(vendorAdapter);
 
         Map<String, Object> properties = new HashMap<>();
-        properties.put(Environment.MULTI_TENANT, org.hibernate.MultiTenancyStrategy.DATABASE);
-        properties.put(Environment.MULTI_TENANT_CONNECTION_PROVIDER, tenantConnectionProvider);
-        properties.put(Environment.MULTI_TENANT_IDENTIFIER_RESOLVER, tenantIdentifierResolver);
+        properties.put("hibernate.multitenancy", "DATABASE");
+        properties.put("hibernate.tenant_identifier_resolver", tenantIdentifierResolver);
+        properties.put("hibernate.multi_tenant_connection_provider", tenantConnectionProvider);
         properties.put(Environment.FORMAT_SQL, true);
         properties.put(Environment.SHOW_SQL, false);
         properties.put(Environment.HBM2DDL_AUTO, "validate");

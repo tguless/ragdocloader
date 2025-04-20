@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +19,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class S3BucketConfigService {
     
@@ -44,6 +44,18 @@ public class S3BucketConfigService {
     @Value("${docloader.s3.path-style-access:false}")
     private boolean defaultPathStyleAccess;
     
+    // Use constructor injection with @Lazy to break circular dependency
+    public S3BucketConfigService(
+            S3BucketConfigRepository s3BucketConfigRepository,
+            TenantRepository tenantRepository,
+            @Lazy S3Service s3Service,
+            @Qualifier("s3BucketName") String defaultBucketName) {
+        this.s3BucketConfigRepository = s3BucketConfigRepository;
+        this.tenantRepository = tenantRepository;
+        this.s3Service = s3Service;
+        this.defaultBucketName = defaultBucketName;
+    }
+    
     public List<S3BucketConfig> getAllBucketConfigs(UUID tenantId) {
         return s3BucketConfigRepository.findByTenantId(tenantId);
     }
@@ -59,6 +71,54 @@ public class S3BucketConfigService {
         
         return s3BucketConfigRepository.findByTenantAndIsDefaultTrue(tenant)
                 .or(() -> s3BucketConfigRepository.findByTenant(tenant).stream().findFirst());
+    }
+    
+    /**
+     * Create a default S3 bucket configuration for a tenant if one doesn't exist
+     * @param tenant The tenant to create a bucket configuration for
+     * @return The created S3BucketConfig
+     */
+    @Transactional
+    public S3BucketConfig createDefaultBucketConfig(Tenant tenant) {
+        // Check if tenant already has bucket configs
+        List<S3BucketConfig> existingConfigs = s3BucketConfigRepository.findByTenant(tenant);
+        if (!existingConfigs.isEmpty()) {
+            log.info("Tenant {} already has bucket configurations", tenant.getName());
+            return existingConfigs.stream()
+                    .filter(config -> Boolean.TRUE.equals(config.getIsDefault()))
+                    .findFirst()
+                    .orElse(existingConfigs.get(0));
+        }
+        
+        // Create a new default bucket config
+        String bucketName = tenant.getSubdomain().toLowerCase() + "-" + defaultBucketName;
+        log.info("Creating default S3 bucket configuration for tenant: {} with bucket: {}", 
+                tenant.getName(), bucketName);
+        
+        S3BucketConfig config = new S3BucketConfig();
+        config.setTenant(tenant);
+        config.setName("Default");
+        config.setBucketName(bucketName);
+        config.setEndpoint(defaultEndpoint);
+        config.setRegion(defaultRegion);
+        config.setAccessKey(defaultAccessKey);
+        config.setSecretKey(defaultSecretKey);
+        config.setPathStyleAccess(defaultPathStyleAccess);
+        config.setIsDefault(true);
+        
+        S3BucketConfig savedConfig = s3BucketConfigRepository.save(config);
+        
+        // Try to create the bucket if it doesn't exist
+        try {
+            s3Service.createBucketIfNotExists(savedConfig);
+            log.info("Successfully created S3 bucket for tenant: {}", tenant.getName());
+        } catch (Exception e) {
+            log.error("Failed to create S3 bucket for tenant '{}': {}", 
+                    tenant.getName(), e.getMessage(), e);
+            // Don't fail the bucket config creation if bucket creation fails
+        }
+        
+        return savedConfig;
     }
     
     @Transactional

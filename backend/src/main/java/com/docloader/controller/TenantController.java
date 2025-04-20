@@ -5,6 +5,7 @@ import com.docloader.model.Role;
 import com.docloader.model.Tenant;
 import com.docloader.model.User;
 import com.docloader.repository.RoleRepository;
+import com.docloader.service.S3BucketConfigService;
 import com.docloader.service.TenantService;
 import com.docloader.service.UserService;
 import jakarta.validation.Valid;
@@ -28,6 +29,7 @@ public class TenantController {
     private final TenantService tenantService;
     private final UserService userService;
     private final RoleRepository roleRepository;
+    private final S3BucketConfigService s3BucketConfigService;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -51,16 +53,53 @@ public class TenantController {
             tenant.setName(tenantRequest.getName());
             tenant.setSubdomain(tenantRequest.getSubdomain());
             
-            // Set S3 configuration if provided
-            tenant.setS3Endpoint(tenantRequest.getS3Endpoint());
-            tenant.setS3Region(tenantRequest.getS3Region());
-            tenant.setS3AccessKey(tenantRequest.getS3AccessKey());
-            tenant.setS3SecretKey(tenantRequest.getS3SecretKey());
-            tenant.setS3BucketName(tenantRequest.getS3BucketName());
-            tenant.setS3PathStyleAccess(tenantRequest.getS3PathStyleAccess());
-            
             // Create the tenant
             Tenant savedTenant = tenantService.createTenant(tenant);
+            
+            // Create S3 bucket config if S3 details were provided
+            if (tenantRequest.getS3BucketName() != null || tenantRequest.getS3Endpoint() != null) {
+                try {
+                    // The default bucket config was already created in TenantService, but we'll update it
+                    s3BucketConfigService.getAllBucketConfigs(savedTenant.getId()).stream()
+                            .filter(config -> Boolean.TRUE.equals(config.getIsDefault()))
+                            .findFirst()
+                            .ifPresent(config -> {
+                                if (tenantRequest.getS3BucketName() != null) {
+                                    config.setBucketName(tenantRequest.getS3BucketName());
+                                }
+                                if (tenantRequest.getS3Endpoint() != null) {
+                                    config.setEndpoint(tenantRequest.getS3Endpoint());
+                                }
+                                if (tenantRequest.getS3Region() != null) {
+                                    config.setRegion(tenantRequest.getS3Region());
+                                }
+                                if (tenantRequest.getS3AccessKey() != null) {
+                                    config.setAccessKey(tenantRequest.getS3AccessKey());
+                                }
+                                if (tenantRequest.getS3SecretKey() != null) {
+                                    config.setSecretKey(tenantRequest.getS3SecretKey());
+                                }
+                                if (tenantRequest.getS3PathStyleAccess() != null) {
+                                    config.setPathStyleAccess(tenantRequest.getS3PathStyleAccess());
+                                }
+                                s3BucketConfigService.updateBucketConfig(savedTenant.getId(), config.getId(), 
+                                        // Convert to S3BucketConfigRequest - would be cleaner with a proper mapper
+                                        new com.docloader.dto.S3BucketConfigRequest(
+                                                config.getName(), 
+                                                config.getBucketName(), 
+                                                config.getIsDefault(),
+                                                config.getEndpoint(),
+                                                config.getRegion(),
+                                                config.getAccessKey(),
+                                                config.getSecretKey(),
+                                                config.getPathStyleAccess()
+                                        ));
+                            });
+                } catch (Exception e) {
+                    log.error("Error updating S3 bucket config: {}", e.getMessage());
+                    // Don't fail tenant creation if S3 config can't be updated
+                }
+            }
             
             // Create the admin user for the tenant
             User adminUser = new User();
@@ -94,16 +133,53 @@ public class TenantController {
             tenant.setName(tenantRequest.getName());
             tenant.setSubdomain(tenantRequest.getSubdomain());
             
-            // Set S3 configuration if provided
-            tenant.setS3Endpoint(tenantRequest.getS3Endpoint());
-            tenant.setS3Region(tenantRequest.getS3Region());
-            tenant.setS3AccessKey(tenantRequest.getS3AccessKey());
-            tenant.setS3SecretKey(tenantRequest.getS3SecretKey());
-            tenant.setS3BucketName(tenantRequest.getS3BucketName());
-            tenant.setS3PathStyleAccess(tenantRequest.getS3PathStyleAccess());
-            
             // Create the tenant
             Tenant savedTenant = tenantService.createTenant(tenant);
+            
+            // Create S3 bucket config if S3 details were provided
+            if (tenantRequest.getS3BucketName() != null || tenantRequest.getS3Endpoint() != null) {
+                try {
+                    // The default bucket config was already created in TenantService, but we'll update it
+                    s3BucketConfigService.getAllBucketConfigs(savedTenant.getId()).stream()
+                            .filter(config -> Boolean.TRUE.equals(config.getIsDefault()))
+                            .findFirst()
+                            .ifPresent(config -> {
+                                if (tenantRequest.getS3BucketName() != null) {
+                                    config.setBucketName(tenantRequest.getS3BucketName());
+                                }
+                                if (tenantRequest.getS3Endpoint() != null) {
+                                    config.setEndpoint(tenantRequest.getS3Endpoint());
+                                }
+                                if (tenantRequest.getS3Region() != null) {
+                                    config.setRegion(tenantRequest.getS3Region());
+                                }
+                                if (tenantRequest.getS3AccessKey() != null) {
+                                    config.setAccessKey(tenantRequest.getS3AccessKey());
+                                }
+                                if (tenantRequest.getS3SecretKey() != null) {
+                                    config.setSecretKey(tenantRequest.getS3SecretKey());
+                                }
+                                if (tenantRequest.getS3PathStyleAccess() != null) {
+                                    config.setPathStyleAccess(tenantRequest.getS3PathStyleAccess());
+                                }
+                                s3BucketConfigService.updateBucketConfig(savedTenant.getId(), config.getId(), 
+                                        // Convert to S3BucketConfigRequest - would be cleaner with a proper mapper
+                                        new com.docloader.dto.S3BucketConfigRequest(
+                                                config.getName(), 
+                                                config.getBucketName(), 
+                                                config.getIsDefault(),
+                                                config.getEndpoint(),
+                                                config.getRegion(),
+                                                config.getAccessKey(),
+                                                config.getSecretKey(),
+                                                config.getPathStyleAccess()
+                                        ));
+                            });
+                } catch (Exception e) {
+                    log.error("Error updating S3 bucket config: {}", e.getMessage());
+                    // Don't fail tenant creation if S3 config can't be updated
+                }
+            }
             
             // Create the admin user for the tenant
             User adminUser = new User();
@@ -137,32 +213,52 @@ public class TenantController {
             existingTenant.setName(tenantRequest.getName());
             // We don't update subdomain as that would require database migration
             
-            // Update S3 configuration if provided
-            if (tenantRequest.getS3Endpoint() != null) {
-                existingTenant.setS3Endpoint(tenantRequest.getS3Endpoint());
-            }
-            
-            if (tenantRequest.getS3Region() != null) {
-                existingTenant.setS3Region(tenantRequest.getS3Region());
-            }
-            
-            if (tenantRequest.getS3AccessKey() != null) {
-                existingTenant.setS3AccessKey(tenantRequest.getS3AccessKey());
-            }
-            
-            if (tenantRequest.getS3SecretKey() != null) {
-                existingTenant.setS3SecretKey(tenantRequest.getS3SecretKey());
-            }
-            
-            if (tenantRequest.getS3BucketName() != null) {
-                existingTenant.setS3BucketName(tenantRequest.getS3BucketName());
-            }
-            
-            if (tenantRequest.getS3PathStyleAccess() != null) {
-                existingTenant.setS3PathStyleAccess(tenantRequest.getS3PathStyleAccess());
-            }
-            
             Tenant updatedTenant = tenantService.updateTenant(id, existingTenant);
+            
+            // Update S3 bucket config if S3 details were provided
+            if (tenantRequest.getS3BucketName() != null || tenantRequest.getS3Endpoint() != null) {
+                try {
+                    s3BucketConfigService.getAllBucketConfigs(id).stream()
+                            .filter(config -> Boolean.TRUE.equals(config.getIsDefault()))
+                            .findFirst()
+                            .ifPresent(config -> {
+                                if (tenantRequest.getS3BucketName() != null) {
+                                    config.setBucketName(tenantRequest.getS3BucketName());
+                                }
+                                if (tenantRequest.getS3Endpoint() != null) {
+                                    config.setEndpoint(tenantRequest.getS3Endpoint());
+                                }
+                                if (tenantRequest.getS3Region() != null) {
+                                    config.setRegion(tenantRequest.getS3Region());
+                                }
+                                if (tenantRequest.getS3AccessKey() != null) {
+                                    config.setAccessKey(tenantRequest.getS3AccessKey());
+                                }
+                                if (tenantRequest.getS3SecretKey() != null) {
+                                    config.setSecretKey(tenantRequest.getS3SecretKey());
+                                }
+                                if (tenantRequest.getS3PathStyleAccess() != null) {
+                                    config.setPathStyleAccess(tenantRequest.getS3PathStyleAccess());
+                                }
+                                s3BucketConfigService.updateBucketConfig(id, config.getId(), 
+                                        // Convert to S3BucketConfigRequest - would be cleaner with a proper mapper
+                                        new com.docloader.dto.S3BucketConfigRequest(
+                                                config.getName(), 
+                                                config.getBucketName(), 
+                                                config.getIsDefault(),
+                                                config.getEndpoint(),
+                                                config.getRegion(),
+                                                config.getAccessKey(),
+                                                config.getSecretKey(),
+                                                config.getPathStyleAccess()
+                                        ));
+                            });
+                } catch (Exception e) {
+                    log.error("Error updating S3 bucket config: {}", e.getMessage());
+                    // Don't fail tenant update if S3 config can't be updated
+                }
+            }
+            
             return ResponseEntity.ok(updatedTenant);
         } catch (Exception e) {
             log.error("Error updating tenant: {}", e.getMessage());

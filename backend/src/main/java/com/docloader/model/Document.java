@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "documents", schema = "tenant_template", 
+@Table(name = "documents", schema = "app", 
        uniqueConstraints = @UniqueConstraint(columnNames = {"file_path", "md5_hash"}))
 @Getter
 @Setter

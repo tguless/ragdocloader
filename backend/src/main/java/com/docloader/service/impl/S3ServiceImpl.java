@@ -1,9 +1,7 @@
 package com.docloader.service.impl;
 
-import com.docloader.model.Tenant;
+import com.docloader.model.S3BucketConfig;
 import com.docloader.service.S3Service;
-import com.docloader.service.TenantService;
-import com.docloader.multitenancy.TenantContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,8 +37,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class S3ServiceImpl implements S3Service {
 
-    private final TenantService tenantService;
-    
     @Qualifier("s3BucketName")
     private final String defaultBucketName;
     
@@ -59,7 +55,7 @@ public class S3ServiceImpl implements S3Service {
     @Value("${docloader.s3.path-style-access}")
     private boolean defaultPathStyleAccess;
     
-    // Cache S3 clients per tenant to avoid creating new ones for each request
+    // Cache S3 clients per config to avoid creating new ones for each request
     private final Map<String, S3Client> s3ClientCache = new ConcurrentHashMap<>();
     private final Map<String, S3AsyncClient> s3AsyncClientCache = new ConcurrentHashMap<>();
     
@@ -67,41 +63,39 @@ public class S3ServiceImpl implements S3Service {
     private final S3Client defaultS3Client;
     private final S3AsyncClient defaultS3AsyncClient;
     
-    public S3ServiceImpl(TenantService tenantService, 
-                        @Qualifier("s3BucketName") String defaultBucketName,
+    public S3ServiceImpl(@Qualifier("s3BucketName") String defaultBucketName,
                         S3Client defaultS3Client,
                         S3AsyncClient defaultS3AsyncClient) {
-        this.tenantService = tenantService;
         this.defaultBucketName = defaultBucketName;
         this.defaultS3Client = defaultS3Client;
         this.defaultS3AsyncClient = defaultS3AsyncClient;
     }
     
-    // Get or create an S3 client for the given tenant
-    private S3Client getS3Client(Tenant tenant) {
-        String tenantId = tenant.getId().toString();
-        return s3ClientCache.computeIfAbsent(tenantId, id -> createS3Client(tenant));
+    // Get or create an S3 client for the given bucket config
+    private S3Client getS3Client(S3BucketConfig config) {
+        String configId = config.getId().toString();
+        return s3ClientCache.computeIfAbsent(configId, id -> createS3Client(config));
     }
     
-    // Get or create an S3 async client for the given tenant
-    private S3AsyncClient getS3AsyncClient(Tenant tenant) {
-        String tenantId = tenant.getId().toString();
-        return s3AsyncClientCache.computeIfAbsent(tenantId, id -> createS3AsyncClient(tenant));
+    // Get or create an S3 async client for the given bucket config
+    private S3AsyncClient getS3AsyncClient(S3BucketConfig config) {
+        String configId = config.getId().toString();
+        return s3AsyncClientCache.computeIfAbsent(configId, id -> createS3AsyncClient(config));
     }
     
-    // Create a new S3 client for the given tenant
-    private S3Client createS3Client(Tenant tenant) {
-        String endpoint = tenant.getS3Endpoint() != null ? tenant.getS3Endpoint() : defaultEndpoint;
-        String region = tenant.getS3Region() != null ? tenant.getS3Region() : defaultRegion;
-        String accessKey = tenant.getS3AccessKey() != null ? tenant.getS3AccessKey() : defaultAccessKey;
-        String secretKey = tenant.getS3SecretKey() != null ? tenant.getS3SecretKey() : defaultSecretKey;
-        boolean pathStyleAccess = tenant.getS3PathStyleAccess() != null ? tenant.getS3PathStyleAccess() : defaultPathStyleAccess;
+    // Create a new S3 client for the given bucket config
+    private S3Client createS3Client(S3BucketConfig config) {
+        String endpoint = config.getEndpoint() != null ? config.getEndpoint() : defaultEndpoint;
+        String region = config.getRegion() != null ? config.getRegion() : defaultRegion;
+        String accessKey = config.getAccessKey() != null ? config.getAccessKey() : defaultAccessKey;
+        String secretKey = config.getSecretKey() != null ? config.getSecretKey() : defaultSecretKey;
+        boolean pathStyleAccess = config.getPathStyleAccess() != null ? config.getPathStyleAccess() : defaultPathStyleAccess;
         
-        log.info("Creating S3 client for tenant {}", tenant.getName());
+        log.info("Creating S3 client for bucket config {}", config.getName());
         
         AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKey, secretKey);
         
-        S3Client.Builder s3ClientBuilder = S3Client.builder()
+        var builder = S3Client.builder()
                 .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
                 .region(Region.of(region))
                 .httpClient(ApacheHttpClient.builder()
@@ -110,65 +104,61 @@ public class S3ServiceImpl implements S3Service {
         
         // Set custom endpoint if configured (for MinIO)
         if (endpoint != null && !endpoint.isEmpty()) {
-            s3ClientBuilder.endpointOverride(URI.create(endpoint));
+            builder.endpointOverride(URI.create(endpoint));
         }
         
         // Enable path-style access if required (for MinIO)
         if (pathStyleAccess) {
-            s3ClientBuilder.serviceConfiguration(
+            builder.serviceConfiguration(
                     S3Configuration.builder()
                             .pathStyleAccessEnabled(true)
                             .build());
         }
         
-        return s3ClientBuilder.build();
+        return builder.build();
     }
     
-    // Create a new S3 async client for the given tenant
-    private S3AsyncClient createS3AsyncClient(Tenant tenant) {
-        String endpoint = tenant.getS3Endpoint() != null ? tenant.getS3Endpoint() : defaultEndpoint;
-        String region = tenant.getS3Region() != null ? tenant.getS3Region() : defaultRegion;
-        String accessKey = tenant.getS3AccessKey() != null ? tenant.getS3AccessKey() : defaultAccessKey;
-        String secretKey = tenant.getS3SecretKey() != null ? tenant.getS3SecretKey() : defaultSecretKey;
-        boolean pathStyleAccess = tenant.getS3PathStyleAccess() != null ? tenant.getS3PathStyleAccess() : defaultPathStyleAccess;
+    // Create a new S3 async client for the given bucket config
+    private S3AsyncClient createS3AsyncClient(S3BucketConfig config) {
+        String endpoint = config.getEndpoint() != null ? config.getEndpoint() : defaultEndpoint;
+        String region = config.getRegion() != null ? config.getRegion() : defaultRegion;
+        String accessKey = config.getAccessKey() != null ? config.getAccessKey() : defaultAccessKey;
+        String secretKey = config.getSecretKey() != null ? config.getSecretKey() : defaultSecretKey;
+        boolean pathStyleAccess = config.getPathStyleAccess() != null ? config.getPathStyleAccess() : defaultPathStyleAccess;
         
-        log.info("Creating S3 async client for tenant {}", tenant.getName());
+        log.info("Creating S3 async client for bucket config {}", config.getName());
         
         AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKey, secretKey);
         SdkAsyncHttpClient httpClient = NettyNioAsyncHttpClient.builder()
                 .connectionTimeout(Duration.ofSeconds(30))
                 .build();
         
-        S3AsyncClient.Builder s3AsyncClientBuilder = S3AsyncClient.builder()
+        var builder = S3AsyncClient.builder()
                 .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
                 .region(Region.of(region))
                 .httpClient(httpClient);
         
         // Set custom endpoint if configured (for MinIO)
         if (endpoint != null && !endpoint.isEmpty()) {
-            s3AsyncClientBuilder.endpointOverride(URI.create(endpoint));
+            builder.endpointOverride(URI.create(endpoint));
         }
         
         // Enable path-style access if required (for MinIO)
         if (pathStyleAccess) {
-            s3AsyncClientBuilder.serviceConfiguration(
+            builder.serviceConfiguration(
                     S3Configuration.builder()
                             .pathStyleAccessEnabled(true)
                             .build());
         }
         
-        return s3AsyncClientBuilder.build();
-    }
-    
-    private String getBucketName(Tenant tenant) {
-        return tenant.getS3BucketName() != null ? tenant.getS3BucketName() : defaultBucketName;
+        return builder.build();
     }
 
     @Override
-    public String uploadFile(Tenant tenant, String key, File file, Map<String, String> metadata) {
+    public String uploadFile(S3BucketConfig config, String key, File file, Map<String, String> metadata) {
         try {
-            S3Client s3Client = getS3Client(tenant);
-            String bucketName = getBucketName(tenant);
+            S3Client s3Client = getS3Client(config);
+            String bucketName = config.getBucketName();
             
             PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -179,7 +169,7 @@ public class S3ServiceImpl implements S3Service {
             }
             
             s3Client.putObject(requestBuilder.build(), RequestBody.fromFile(file));
-            return getObjectUrl(tenant, key);
+            return getObjectUrl(config, key);
         } catch (Exception e) {
             log.error("Error uploading file to S3: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to upload file to S3", e);
@@ -187,9 +177,9 @@ public class S3ServiceImpl implements S3Service {
     }
 
     @Override
-    public String uploadFile(Tenant tenant, String key, MultipartFile file, Map<String, String> metadata) {
+    public String uploadFile(S3BucketConfig config, String key, MultipartFile file, Map<String, String> metadata) {
         try {
-            return uploadFile(tenant, key, file.getInputStream(), file.getSize(), file.getContentType(), metadata);
+            return uploadFile(config, key, file.getInputStream(), file.getSize(), file.getContentType(), metadata);
         } catch (IOException e) {
             log.error("Error uploading multipart file to S3: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to upload multipart file to S3", e);
@@ -197,29 +187,26 @@ public class S3ServiceImpl implements S3Service {
     }
 
     @Override
-    public String uploadFile(Tenant tenant, String key, InputStream inputStream, long contentLength, String contentType, Map<String, String> metadata) {
+    public String uploadFile(S3BucketConfig config, String key, InputStream inputStream, long contentLength, String contentType, Map<String, String> metadata) {
         try {
-            S3Client s3Client = getS3Client(tenant);
-            String bucketName = getBucketName(tenant);
+            S3Client s3Client = getS3Client(config);
+            String bucketName = config.getBucketName();
             
-            Map<String, String> metadataMap = new HashMap<>();
-            if (metadata != null) {
-                metadataMap.putAll(metadata);
-            }
-            if (contentType != null) {
-                metadataMap.put("Content-Type", contentType);
-            }
-
             PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
                     .bucket(bucketName)
-                    .key(key);
+                    .key(key)
+                    .contentLength(contentLength);
             
-            if (!metadataMap.isEmpty()) {
-                requestBuilder.metadata(metadataMap);
+            if (contentType != null) {
+                requestBuilder.contentType(contentType);
+            }
+            
+            if (metadata != null && !metadata.isEmpty()) {
+                requestBuilder.metadata(metadata);
             }
             
             s3Client.putObject(requestBuilder.build(), RequestBody.fromInputStream(inputStream, contentLength));
-            return getObjectUrl(tenant, key);
+            return getObjectUrl(config, key);
         } catch (Exception e) {
             log.error("Error uploading input stream to S3: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to upload input stream to S3", e);
@@ -227,10 +214,10 @@ public class S3ServiceImpl implements S3Service {
     }
 
     @Override
-    public CompletableFuture<String> uploadFileAsync(Tenant tenant, String key, File file, Map<String, String> metadata) {
+    public CompletableFuture<String> uploadFileAsync(S3BucketConfig config, String key, File file, Map<String, String> metadata) {
         try {
-            S3AsyncClient s3AsyncClient = getS3AsyncClient(tenant);
-            String bucketName = getBucketName(tenant);
+            S3AsyncClient s3AsyncClient = getS3AsyncClient(config);
+            String bucketName = config.getBucketName();
             
             PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -241,18 +228,20 @@ public class S3ServiceImpl implements S3Service {
             }
             
             return s3AsyncClient.putObject(requestBuilder.build(), AsyncRequestBody.fromFile(file))
-                    .thenApply(response -> getObjectUrl(tenant, key));
+                    .thenApply(response -> getObjectUrl(config, key));
         } catch (Exception e) {
-            log.error("Error uploading file asynchronously to S3: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to upload file asynchronously to S3", e);
+            log.error("Error uploading file to S3 asynchronously: {}", e.getMessage(), e);
+            CompletableFuture<String> future = new CompletableFuture<>();
+            future.completeExceptionally(new RuntimeException("Failed to upload file to S3 asynchronously", e));
+            return future;
         }
     }
 
     @Override
-    public InputStream downloadFile(Tenant tenant, String key) {
+    public InputStream downloadFile(S3BucketConfig config, String key) {
         try {
-            S3Client s3Client = getS3Client(tenant);
-            String bucketName = getBucketName(tenant);
+            S3Client s3Client = getS3Client(config);
+            String bucketName = config.getBucketName();
             
             GetObjectRequest request = GetObjectRequest.builder()
                     .bucket(bucketName)
@@ -260,9 +249,6 @@ public class S3ServiceImpl implements S3Service {
                     .build();
             
             return s3Client.getObject(request);
-        } catch (NoSuchKeyException e) {
-            log.error("File not found in S3: {}", key);
-            throw new RuntimeException("File not found in S3: " + key, e);
         } catch (Exception e) {
             log.error("Error downloading file from S3: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to download file from S3", e);
@@ -270,10 +256,10 @@ public class S3ServiceImpl implements S3Service {
     }
 
     @Override
-    public boolean doesObjectExist(Tenant tenant, String key) {
+    public boolean doesObjectExist(S3BucketConfig config, String key) {
         try {
-            S3Client s3Client = getS3Client(tenant);
-            String bucketName = getBucketName(tenant);
+            S3Client s3Client = getS3Client(config);
+            String bucketName = config.getBucketName();
             
             HeadObjectRequest request = HeadObjectRequest.builder()
                     .bucket(bucketName)
@@ -291,10 +277,10 @@ public class S3ServiceImpl implements S3Service {
     }
 
     @Override
-    public void deleteObject(Tenant tenant, String key) {
+    public void deleteObject(S3BucketConfig config, String key) {
         try {
-            S3Client s3Client = getS3Client(tenant);
-            String bucketName = getBucketName(tenant);
+            S3Client s3Client = getS3Client(config);
+            String bucketName = config.getBucketName();
             
             DeleteObjectRequest request = DeleteObjectRequest.builder()
                     .bucket(bucketName)
@@ -309,10 +295,10 @@ public class S3ServiceImpl implements S3Service {
     }
 
     @Override
-    public List<String> listObjects(Tenant tenant, String prefix) {
+    public List<String> listObjects(S3BucketConfig config, String prefix) {
         try {
-            S3Client s3Client = getS3Client(tenant);
-            String bucketName = getBucketName(tenant);
+            S3Client s3Client = getS3Client(config);
+            String bucketName = config.getBucketName();
             
             ListObjectsV2Request request = ListObjectsV2Request.builder()
                     .bucket(bucketName)
@@ -320,10 +306,13 @@ public class S3ServiceImpl implements S3Service {
                     .build();
             
             ListObjectsV2Response response = s3Client.listObjectsV2(request);
-            List<String> keys = new ArrayList<>();
+            List<String> objects = new ArrayList<>();
             
-            response.contents().forEach(s3Object -> keys.add(s3Object.key()));
-            return keys;
+            for (S3Object object : response.contents()) {
+                objects.add(object.key());
+            }
+            
+            return objects;
         } catch (Exception e) {
             log.error("Error listing objects in S3: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to list objects in S3", e);
@@ -331,38 +320,37 @@ public class S3ServiceImpl implements S3Service {
     }
 
     @Override
-    public String getObjectUrl(Tenant tenant, String key) {
+    public String getObjectUrl(S3BucketConfig config, String key) {
         try {
-            String bucketName = getBucketName(tenant);
-            String endpoint = tenant.getS3Endpoint() != null ? tenant.getS3Endpoint() : defaultEndpoint;
+            String endpoint = config.getEndpoint() != null ? config.getEndpoint() : defaultEndpoint;
+            String bucketName = config.getBucketName();
             
             if (endpoint != null && !endpoint.isEmpty()) {
-                // For MinIO or custom endpoint
-                return new URI(endpoint + "/" + bucketName + "/" + key).toString();
+                return String.format("%s/%s/%s", endpoint, bucketName, key);
             } else {
-                // For AWS S3
-                S3Client s3Client = getS3Client(tenant);
-                return s3Client.utilities().getUrl(builder -> builder.bucket(bucketName).key(key)).toString();
+                // Use AWS S3 URL format
+                String region = config.getRegion() != null ? config.getRegion() : defaultRegion;
+                return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
             }
-        } catch (URISyntaxException e) {
-            log.error("Error creating object URL: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create object URL", e);
+        } catch (Exception e) {
+            log.error("Error generating object URL: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to generate object URL", e);
         }
     }
 
     @Override
-    public void createBucketIfNotExists(Tenant tenant) {
+    public void createBucketIfNotExists(S3BucketConfig config) {
         try {
-            S3Client s3Client = getS3Client(tenant);
-            String bucketName = getBucketName(tenant);
+            S3Client s3Client = getS3Client(config);
+            String bucketName = config.getBucketName();
             
             createBucketIfNotExistsInternal(s3Client, bucketName);
         } catch (Exception e) {
-            log.error("Error creating bucket in S3 for tenant {}: {}", tenant.getName(), e.getMessage(), e);
+            log.error("Error creating bucket in S3: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to create bucket in S3", e);
         }
     }
-    
+
     @Override
     public void createBucketIfNotExists(String bucketName) {
         try {
@@ -372,21 +360,30 @@ public class S3ServiceImpl implements S3Service {
             throw new RuntimeException("Failed to create bucket in S3", e);
         }
     }
-    
+
     private void createBucketIfNotExistsInternal(S3Client s3Client, String bucketName) {
-        ListBucketsRequest listBucketsRequest = ListBucketsRequest.builder().build();
-        ListBucketsResponse listBucketsResponse = s3Client.listBuckets(listBucketsRequest);
-        
-        boolean bucketExists = listBucketsResponse.buckets().stream()
-                .anyMatch(bucket -> bucket.name().equals(bucketName));
-        
-        if (!bucketExists) {
-            CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
+        try {
+            HeadBucketRequest headBucketRequest = HeadBucketRequest.builder()
                     .bucket(bucketName)
                     .build();
             
-            s3Client.createBucket(createBucketRequest);
-            log.info("Created S3 bucket: {}", bucketName);
+            try {
+                s3Client.headBucket(headBucketRequest);
+                log.info("S3 bucket '{}' already exists", bucketName);
+            } catch (NoSuchBucketException e) {
+                log.info("Creating S3 bucket '{}'", bucketName);
+                
+                CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
+                        .bucket(bucketName)
+                        .build();
+                
+                s3Client.createBucket(createBucketRequest);
+                
+                log.info("S3 bucket '{}' created successfully", bucketName);
+            }
+        } catch (Exception e) {
+            log.error("Error checking/creating bucket in S3: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to check/create bucket in S3", e);
         }
     }
 } 

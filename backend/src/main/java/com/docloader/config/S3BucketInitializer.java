@@ -1,13 +1,14 @@
 package com.docloader.config;
 
 import com.docloader.model.Tenant;
+import com.docloader.service.S3BucketConfigService;
 import com.docloader.service.S3Service;
 import com.docloader.service.TenantService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -16,15 +17,27 @@ import java.util.List;
  * Initializes the S3 buckets for all tenants on application startup
  */
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class S3BucketInitializer implements ApplicationListener<ApplicationReadyEvent> {
 
     private final S3Service s3Service;
     private final TenantService tenantService;
+    private final S3BucketConfigService s3BucketConfigService;
     
     @Qualifier("s3BucketName")
     private final String defaultBucketName;
+
+    // Use constructor injection with @Lazy to break circular dependency
+    public S3BucketInitializer(
+            @Lazy S3Service s3Service,
+            @Lazy TenantService tenantService,
+            @Lazy S3BucketConfigService s3BucketConfigService,
+            @Qualifier("s3BucketName") String defaultBucketName) {
+        this.s3Service = s3Service;
+        this.tenantService = tenantService;
+        this.s3BucketConfigService = s3BucketConfigService;
+        this.defaultBucketName = defaultBucketName;
+    }
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
@@ -45,9 +58,8 @@ public class S3BucketInitializer implements ApplicationListener<ApplicationReady
             
             for (Tenant tenant : tenants) {
                 try {
-                    log.info("Creating S3 bucket for tenant '{}' ({})", 
-                           tenant.getName(), tenant.getS3BucketName());
-                    s3Service.createBucketIfNotExists(tenant);
+                    log.info("Creating S3 bucket configuration for tenant '{}'", tenant.getName());
+                    s3BucketConfigService.createDefaultBucketConfig(tenant);
                     log.info("Successfully created S3 bucket for tenant '{}'", tenant.getName());
                 } catch (Exception e) {
                     log.error("Failed to initialize S3 bucket for tenant '{}': {}", 

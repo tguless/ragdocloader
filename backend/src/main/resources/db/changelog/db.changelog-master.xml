@@ -14,5 +14,11 @@
     
     <!-- Include S3 bucket configuration schema -->
     <include file="changes/00003-s3-bucket-configs.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Include document tables schema -->
+    <include file="changes/00004-document-tables.xml" relativeToChangelogFile="true"/>
+
+    <!-- Include permissions for document tables -->
+    <include file="changes/00005-grant-document-permissions.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog> 

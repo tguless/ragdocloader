@@ -70,13 +70,6 @@
         </createIndex>
     </changeSet>
     
-    <changeSet id="00003-02" author="docloader">
-        <comment>Modify tenant table to make S3 bucket name field nullable</comment>
-        <dropNotNullConstraint tableName="tenants" 
-                              columnName="s3_bucket_name" 
-                              schemaName="app"/>
-    </changeSet>
-    
     <!-- Create S3 bucket configuration for test tenant -->
     <changeSet id="00003-03" author="docloader" context="dev,test">
         <comment>Create S3 bucket configuration for test tenant</comment>
@@ -86,7 +79,7 @@
             <column name="name" value="Default MinIO"/>
             <column name="bucket_name" value="test-tenant"/>
             <column name="is_default" valueBoolean="true"/>
-            <column name="endpoint" value="http://minio:9000"/>
+            <column name="endpoint" value="http://localhost:9000"/>
             <column name="region" value="us-east-1"/>
             <column name="access_key" value="minio_access_key"/>
             <column name="secret_key" value="minio_secret_key"/>
@@ -102,7 +95,7 @@
             <column name="name" value="Archive Storage"/>
             <column name="bucket_name" value="test-tenant-archive"/>
             <column name="is_default" valueBoolean="false"/>
-            <column name="endpoint" value="http://minio:9000"/>
+            <column name="endpoint" value="http://localhost:9000"/>
             <column name="region" value="us-east-1"/>
             <column name="access_key" value="minio_access_key"/>
             <column name="secret_key" value="minio_secret_key"/>
