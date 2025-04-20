@@ -220,48 +220,6 @@ const S3BucketSettings = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [debugInfo, setDebugInfo] = useState('');
-  
-  // Debug function to collect auth information
-  const collectDebugInfo = () => {
-    try {
-      // User info
-      const userInfo = user ? JSON.stringify(user, null, 2) : 'No user in context';
-      
-      // Check localStorage for tokens
-      const availableKeys = Object.keys(localStorage);
-      const tokenKeys = availableKeys.filter(key => 
-        key.toLowerCase().includes('token') || 
-        key.toLowerCase().includes('auth') || 
-        key.toLowerCase().includes('jwt')
-      );
-      
-      const tokenValues = {};
-      tokenKeys.forEach(key => {
-        const value = localStorage.getItem(key);
-        tokenValues[key] = value ? `${value.substring(0, 15)}...` : 'empty';
-      });
-      
-      // Collect headers that axios would use
-      const defaultHeaders = axios.defaults.headers || {};
-      
-      const debug = {
-        user: userInfo,
-        tenantId: user?.tenantId || 'No tenant ID found',
-        tokenKeysFound: tokenKeys,
-        tokenSamples: tokenValues,
-        axiosDefaultHeaders: defaultHeaders,
-        localStorage: availableKeys,
-        sessionStorageKeys: Object.keys(sessionStorage),
-      };
-      
-      console.log('Auth Debug Information:', debug);
-      return JSON.stringify(debug, null, 2);
-    } catch (e) {
-      console.error('Error collecting debug info:', e);
-      return 'Error collecting debug info: ' + e.message;
-    }
-  };
   
   // Dialog states
   const [openDialog, setOpenDialog] = useState(false);
@@ -273,50 +231,10 @@ const S3BucketSettings = () => {
     setError('');
     
     try {
-      // Collect debug info before making the request
-      const debugData = collectDebugInfo();
-      setDebugInfo(debugData);
-      
-      console.log('Making request to fetch S3 configs for tenant:', user.tenantId);
-      
-      // Get all available tokens
-      const authToken = localStorage.getItem('token') || 
-                        localStorage.getItem('authToken') ||
-                        localStorage.getItem('jwtToken') ||
-                        sessionStorage.getItem('token') ||
-                        sessionStorage.getItem('authToken');
-      
-      // Log request details
-      console.log('Request URL:', `/api/tenants/${user.tenantId}/s3-configs`);
-      console.log('Auth token available:', authToken ? `${authToken.substring(0, 15)}...` : 'None');
-      
-      // Make request with explicit Authorization header
-      const response = await axios.get(`/api/tenants/${user.tenantId}/s3-configs`, {
-        headers: {
-          'Authorization': authToken ? `Bearer ${authToken}` : '',
-          'Content-Type': 'application/json',
-          'X-Debug-Info': 'true'
-        }
-      });
-      
-      console.log('S3 configs response:', response.data);
+      const response = await axios.get(`/api/tenants/${user.tenantId}/s3-configs`);
       setBucketConfigs(response.data);
     } catch (err) {
       console.error('Error fetching S3 bucket configs:', err);
-      
-      // Enhanced error logging
-      console.log('Error details:', {
-        message: err.message,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        responseData: err.response?.data,
-        responseHeaders: err.response?.headers,
-        config: {
-          url: err.config?.url,
-          method: err.config?.method,
-          headers: err.config?.headers,
-        }
-      });
       
       let errorMessage = 'Failed to load S3 bucket configurations. ';
       
@@ -341,7 +259,6 @@ const S3BucketSettings = () => {
       fetchBucketConfigs();
     } else {
       setError('User or tenant information is missing. Please log in again.');
-      setDebugInfo(collectDebugInfo());
     }
   }, [user?.tenantId]);
   
@@ -444,15 +361,6 @@ const S3BucketSettings = () => {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
-      )}
-      
-      {debugInfo && (
-        <Paper sx={{ p: 2, mb: 3, maxHeight: '200px', overflow: 'auto' }}>
-          <Typography variant="subtitle2" gutterBottom>Debug Information</Typography>
-          <Typography variant="caption" component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
-            {debugInfo}
-          </Typography>
-        </Paper>
       )}
       
       <Paper sx={{ width: '100%', overflow: 'hidden' }}>
