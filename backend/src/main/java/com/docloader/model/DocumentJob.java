@@ -35,6 +35,20 @@ public class DocumentJob {
     @Enumerated(EnumType.STRING)
     private JobStatus status = JobStatus.PENDING;
 
+    @Column(name = "job_type")
+    private String jobType;
+    
+    @Column(name = "config_json", columnDefinition = "jsonb")
+    private String configJson;
+    
+    @Column(name = "source_type")
+    @Enumerated(EnumType.STRING)
+    private SourceType sourceType;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "s3_bucket_config_id")
+    private S3BucketConfig s3BucketConfig;
+
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
 
@@ -54,5 +68,9 @@ public class DocumentJob {
     
     public enum JobStatus {
         PENDING, PROCESSING, COMPLETED, FAILED, SCHEDULED
+    }
+    
+    public enum SourceType {
+        S3, UPLOAD
     }
 } 

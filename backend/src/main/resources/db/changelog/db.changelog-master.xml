@@ -35,5 +35,8 @@
     
     <!-- Initialize schema for the test tenant -->
     <include file="changes/00010-initialize-test-tenant-schema.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Enhance document_jobs table for frontend integration -->
+    <include file="changes/00011-enhance-document-jobs.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog> 

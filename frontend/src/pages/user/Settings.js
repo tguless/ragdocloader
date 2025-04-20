@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
   Box,
@@ -26,6 +27,8 @@ import {
   Brightness4,
   Language,
   Security,
+  Storage,
+  CloudUpload
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 
@@ -200,6 +203,28 @@ const Settings = () => {
           {error}
         </Alert>
       )}
+      
+      {/* S3 Bucket Settings Link */}
+      <Paper sx={{ p: 3, mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <CloudUpload sx={{ fontSize: 40, color: 'primary.main', mr: 2 }} />
+          <Box>
+            <Typography variant="h6">S3 Bucket Settings</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Configure S3 buckets for document storage and processing
+            </Typography>
+          </Box>
+        </Box>
+        <Button 
+          variant="contained" 
+          color="primary"
+          component={Link}
+          to="/settings/s3-buckets"
+          startIcon={<Storage />}
+        >
+          Manage S3 Buckets
+        </Button>
+      </Paper>
       
       <Grid container spacing={3}>
         {/* Appearance Settings */}

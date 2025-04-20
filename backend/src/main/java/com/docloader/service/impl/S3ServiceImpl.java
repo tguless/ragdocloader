@@ -361,6 +361,59 @@ public class S3ServiceImpl implements S3Service {
         }
     }
 
+    @Override
+    public void deleteFile(String key) {
+        try {
+            DeleteObjectRequest request = DeleteObjectRequest.builder()
+                    .bucket(defaultBucketName)
+                    .key(key)
+                    .build();
+            
+            defaultS3Client.deleteObject(request);
+        } catch (Exception e) {
+            log.error("Error deleting file from S3: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to delete file from S3", e);
+        }
+    }
+
+    @Override
+    public boolean fileExists(String key) {
+        try {
+            return doesObjectExist(null, key);
+        } catch (Exception e) {
+            log.error("Error checking if file exists in S3: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    @Override
+    public String uploadFile(String key, InputStream inputStream, long contentLength, String contentType) {
+        try {
+            PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
+                    .bucket(defaultBucketName)
+                    .key(key)
+                    .contentLength(contentLength);
+            
+            if (contentType != null) {
+                requestBuilder.contentType(contentType);
+            }
+            
+            defaultS3Client.putObject(requestBuilder.build(), 
+                    RequestBody.fromInputStream(inputStream, contentLength));
+            
+            // Generate URL for the object
+            if (defaultEndpoint != null && !defaultEndpoint.isEmpty()) {
+                return String.format("%s/%s/%s", defaultEndpoint, defaultBucketName, key);
+            } else {
+                // Use AWS S3 URL format
+                return String.format("https://%s.s3.%s.amazonaws.com/%s", defaultBucketName, defaultRegion, key);
+            }
+        } catch (Exception e) {
+            log.error("Error uploading file to S3: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to upload file to S3", e);
+        }
+    }
+
     private void createBucketIfNotExistsInternal(S3Client s3Client, String bucketName) {
         try {
             HeadBucketRequest headBucketRequest = HeadBucketRequest.builder()

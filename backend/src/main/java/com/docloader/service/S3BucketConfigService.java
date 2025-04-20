@@ -1,6 +1,7 @@
 package com.docloader.service;
 
 import com.docloader.dto.S3BucketConfigRequest;
+import com.docloader.dto.S3BucketConfigResponse;
 import com.docloader.model.S3BucketConfig;
 import com.docloader.model.Tenant;
 import com.docloader.repository.S3BucketConfigRepository;
@@ -247,5 +248,26 @@ public class S3BucketConfigService {
         }
         
         s3BucketConfigRepository.delete(config);
+    }
+    
+    /**
+     * Convert an S3BucketConfig entity to an S3BucketConfigResponse DTO
+     * 
+     * @param config The S3BucketConfig entity
+     * @return The S3BucketConfigResponse DTO
+     */
+    public S3BucketConfigResponse toResponse(S3BucketConfig config) {
+        S3BucketConfigResponse response = new S3BucketConfigResponse();
+        response.setId(config.getId());
+        response.setName(config.getName());
+        response.setBucketName(config.getBucketName());
+        response.setIsDefault(config.getIsDefault());
+        response.setEndpoint(config.getEndpoint());
+        response.setRegion(config.getRegion());
+        response.setAccessKey(config.getAccessKey());
+        response.setPathStyleAccess(config.getPathStyleAccess());
+        response.setCreatedAt(config.getCreatedAt());
+        response.setUpdatedAt(config.getUpdatedAt());
+        return response;
     }
 } 

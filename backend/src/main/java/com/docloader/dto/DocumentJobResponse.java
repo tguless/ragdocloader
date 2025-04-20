@@ -1,14 +1,12 @@
 package com.docloader.dto;
 
+import com.docloader.model.DocumentJob;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -16,31 +14,33 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class DocumentJobRequest {
+public class DocumentJobResponse {
     
-    @NotBlank
-    @Size(min = 3, max = 100)
+    private UUID id;
+    
     private String name;
     
-    @Size(max = 500)
     private String description;
     
-    @NotBlank
-    @Size(min = 3, max = 1000)
     private String sourceLocation;
     
-    private LocalDateTime scheduledTime;
+    private DocumentJob.JobStatus status;
     
-    // New fields for frontend integration
-    private String type;
+    private String jobType;
     
     private Map<String, Object> config;
     
-    private String sourceType; // "s3" or "upload"
+    private DocumentJob.SourceType sourceType;
     
-    private UUID s3BucketId;
+    private S3BucketConfigResponse s3BucketConfig;
     
-    private String s3SourcePath;
+    private UUID createdBy;
     
-    private List<UUID> documentIds;
+    private LocalDateTime createdAt;
+    
+    private LocalDateTime updatedAt;
+    
+    private LocalDateTime scheduledTime;
+    
+    private LocalDateTime completedTime;
 } 

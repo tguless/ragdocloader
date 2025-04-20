@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -23,8 +24,8 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "job_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "job_id")
     private DocumentJob job;
 
     @Column(nullable = false)
@@ -39,8 +40,14 @@ public class Document {
     @Column(name = "content_type")
     private String contentType;
 
-    @Column(name = "processed_at")
+    @Column(name = "uploaded_by")
+    private UUID uploadedBy;
+    
+    @Column(name = "created_at")
     @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
     @Column(name = "embedding_vector_id")
@@ -48,12 +55,12 @@ public class Document {
 
     @Column
     @Enumerated(EnumType.STRING)
-    private DocumentStatus status = DocumentStatus.PROCESSED;
+    private DocumentStatus status = DocumentStatus.PENDING;
 
     @Column(name = "md5_hash", nullable = false)
     private String md5Hash;
     
     public enum DocumentStatus {
-        PROCESSED, FAILED, SKIPPED
+        PENDING, PROCESSING, PROCESSED, FAILED, SKIPPED
     }
 } 

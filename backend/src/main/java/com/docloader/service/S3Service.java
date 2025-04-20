@@ -106,4 +106,27 @@ public interface S3Service {
      * @param bucketName The name of the bucket to create
      */
     void createBucketIfNotExists(String bucketName);
+    
+    /**
+     * Upload a file using the default S3 configuration 
+     * @param key The object key (path and filename)
+     * @param inputStream The input stream to read data from
+     * @param contentLength The length of the content in bytes
+     * @param contentType The content type (MIME type)
+     * @return The full URL of the uploaded object
+     */
+    String uploadFile(String key, InputStream inputStream, long contentLength, String contentType);
+    
+    /**
+     * Delete a file using the default S3 configuration
+     * @param key The object key to delete
+     */
+    void deleteFile(String key);
+    
+    /**
+     * Check if a file exists using the default S3 configuration
+     * @param key The object key to check
+     * @return True if the object exists, false otherwise
+     */
+    boolean fileExists(String key);
 } 

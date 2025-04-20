@@ -12,6 +12,14 @@ spring:
       password: app_user_password
       driver-class-name: org.postgresql.Driver
   
+  # Servlet multipart configuration for file uploads
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 100MB
+      file-size-threshold: 2MB
+  
   # JPA Configuration  
   jpa:
     hibernate:
@@ -119,6 +127,12 @@ docloader:
     secret-key: ${AWS_SECRET_KEY:minio_secret_key}
     bucket-name: ${S3_BUCKET_NAME:docloader}
     path-style-access: ${S3_PATH_STYLE:true}  # Required for MinIO compatibility 
+  uploads:
+    dir: ${UPLOADS_DIR:uploads}
+    max-file-size: ${MAX_FILE_SIZE:50MB}
+    allowed-types: ${ALLOWED_FILE_TYPES:application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet}
+  storage:
+    type: ${STORAGE_TYPE:filesystem}  # Options: filesystem, s3
   weaviate:
     enabled: true
   neo4j:

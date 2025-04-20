@@ -7,6 +7,7 @@ import { CssBaseline, ThemeProvider } from '@mui/material';
 import theme from './theme';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
+import './utils/axios-config';
 
 const queryClient = new QueryClient();
 

@@ -12,6 +12,7 @@ import TenantList from './pages/tenants/TenantList';
 import TenantDetail from './pages/tenants/TenantDetail';
 import Profile from './pages/user/Profile';
 import Settings from './pages/user/Settings';
+import S3BucketSettings from './pages/settings/S3BucketSettings';
 import NotFound from './pages/NotFound';
 import { useAuth } from './context/AuthContext';
 
@@ -87,6 +88,13 @@ function App() {
       <Route path="/settings" element={
         <MainLayout>
           <Settings />
+        </MainLayout>
+      } />
+      
+      {/* S3 Bucket Settings */}
+      <Route path="/settings/s3-buckets" element={
+        <MainLayout>
+          <S3BucketSettings />
         </MainLayout>
       } />
       
