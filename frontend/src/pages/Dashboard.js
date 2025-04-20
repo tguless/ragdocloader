@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Grid, Paper, CircularProgress } from '@mui/material';
+import { Box, Typography, Grid, Paper, CircularProgress, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/axiosConfig';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -12,16 +12,45 @@ const Dashboard = () => {
     totalDocuments: 0
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('/api/dashboard');
-        setStats(response.data);
+        
+        // Get all jobs and calculate statistics from them
+        const jobsResponse = await api.get('/jobs');
+        const jobs = jobsResponse.data || [];
+        
+        // Calculate stats based on job data
+        let totalJobs = jobs.length;
+        let pendingJobs = 0;
+        let completedJobs = 0;
+        let failedJobs = 0;
+        let totalDocuments = 0;
+        
+        jobs.forEach(job => {
+          // Count jobs by status
+          if (job.status === 'PENDING') pendingJobs++;
+          if (job.status === 'COMPLETED') completedJobs++;
+          if (job.status === 'FAILED') failedJobs++;
+          
+          // Sum up document counts from each job
+          totalDocuments += job.documentCount || 0;
+        });
+        
+        setStats({
+          totalJobs,
+          pendingJobs,
+          completedJobs,
+          failedJobs,
+          totalDocuments
+        });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        setError('Failed to load dashboard statistics. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -71,6 +100,12 @@ const Dashboard = () => {
       <Typography variant="h4" component="h1" gutterBottom>
         Dashboard
       </Typography>
+      
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
       
       <Grid container spacing={3} sx={{ mt: 2 }}>
         <Grid item xs={12} sm={6} md={4}>

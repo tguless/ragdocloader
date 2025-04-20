@@ -26,21 +26,21 @@ public class DocumentJobController {
     private final AuthService authService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'SYSTEM_ADMIN')")
     public ResponseEntity<List<DocumentJob>> getAllJobs() {
         UUID userId = authService.getCurrentUserId();
         return ResponseEntity.ok(documentJobService.getAllJobsByUserId(userId));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'SYSTEM_ADMIN')")
     public ResponseEntity<DocumentJob> getJobById(@PathVariable UUID id) {
         return documentJobService.getJobById(id)
                 .map(job -> {
                     // Check if user has access to this job
                     UUID currentUserId = authService.getCurrentUserId();
                     if (currentUserId.equals(job.getCreatedBy()) || authService.getCurrentUser().getAuthorities().stream()
-                            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+                            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SYSTEM_ADMIN"))) {
                         return ResponseEntity.ok(job);
                     } else {
                         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have access to this job");
@@ -50,7 +50,7 @@ public class DocumentJobController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'SYSTEM_ADMIN')")
     public ResponseEntity<DocumentJob> createJob(@Valid @RequestBody DocumentJobRequest jobRequest) {
         try {
             UUID currentUserId = authService.getCurrentUserId();
@@ -77,7 +77,7 @@ public class DocumentJobController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'SYSTEM_ADMIN')")
     public ResponseEntity<DocumentJob> updateJob(@PathVariable UUID id, @Valid @RequestBody DocumentJobRequest jobRequest) {
         try {
             DocumentJob existingJob = documentJobService.getJobById(id)
@@ -86,7 +86,7 @@ public class DocumentJobController {
             // Check if user has access to update this job
             UUID currentUserId = authService.getCurrentUserId();
             if (!currentUserId.equals(existingJob.getCreatedBy()) && authService.getCurrentUser().getAuthorities().stream()
-                    .noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+                    .noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SYSTEM_ADMIN"))) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have access to update this job");
             }
             
@@ -121,7 +121,7 @@ public class DocumentJobController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'SYSTEM_ADMIN')")
     public ResponseEntity<Void> deleteJob(@PathVariable UUID id) {
         try {
             DocumentJob job = documentJobService.getJobById(id)
@@ -130,7 +130,7 @@ public class DocumentJobController {
             // Check if user has access to delete this job
             UUID currentUserId = authService.getCurrentUserId();
             if (!currentUserId.equals(job.getCreatedBy()) && authService.getCurrentUser().getAuthorities().stream()
-                    .noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+                    .noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SYSTEM_ADMIN"))) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have access to delete this job");
             }
             

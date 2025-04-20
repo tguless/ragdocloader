@@ -13,8 +13,8 @@
             <column name="tenant_id" value="00000000-0000-0000-0000-000000000001"/>
             <column name="username" value="sysadmin"/>
             <column name="email" value="sysadmin@test.com"/>
-            <!-- Password: admin123 - This is BCrypt encoded -->
-            <column name="password_hash" value="$2a$10$OPdL0s8h.r6rR.OBcJtqeOuDmqMVCb3qu2wjlvHVeJYYUmZO5HVcK"/>
+            <!-- BCrypt-encoded password for: admin123 -->
+            <column name="password_hash" value="$2y$10$XDSLBhCg5IOJpSgSWUZzw.ekIfKjfYhESTuxmxSHwauHphvCfMC12"/>
             <!-- Role ID 1 corresponds to SYSTEM_ADMIN role -->
             <column name="role_id" value="1"/>
             <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
@@ -30,8 +30,8 @@
             <column name="tenant_id" value="00000000-0000-0000-0000-000000000001"/>
             <column name="username" value="admin"/>
             <column name="email" value="admin@test.com"/>
-            <!-- Password: admin123 - This is BCrypt encoded -->
-            <column name="password_hash" value="$2a$10$OPdL0s8h.r6rR.OBcJtqeOuDmqMVCb3qu2wjlvHVeJYYUmZO5HVcK"/>
+            <!-- BCrypt-encoded password for: admin123 -->
+            <column name="password_hash" value="$2a$10$d3id6B5qapU7ISQ4RINqSe4bXZ7XbJ9mStaP2JH/k5rYIVQpDPFra"/>
             <!-- Role ID 2 corresponds to ADMIN role -->
             <column name="role_id" value="2"/>
             <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>

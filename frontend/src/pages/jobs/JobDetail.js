@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../services/axiosConfig';
 import {
   Box,
   Paper,
@@ -273,7 +273,7 @@ const JobDetail = () => {
     setError('');
     
     try {
-      const response = await axios.get(`/api/jobs/${jobId}`);
+      const response = await api.get(`/jobs/${jobId}`);
       setJob(response.data);
     } catch (err) {
       console.error('Error fetching job details:', err);
@@ -291,7 +291,7 @@ const JobDetail = () => {
     setDocumentsLoading(true);
     
     try {
-      const response = await axios.get(`/api/jobs/${jobId}/documents`);
+      const response = await api.get(`/jobs/${jobId}/documents`);
       setDocuments(response.data);
     } catch (err) {
       console.error('Error fetching documents:', err);
@@ -307,7 +307,7 @@ const JobDetail = () => {
     setResultsLoading(true);
     
     try {
-      const response = await axios.get(`/api/jobs/${jobId}/results`);
+      const response = await api.get(`/jobs/${jobId}/results`);
       setResults(response.data);
     } catch (err) {
       console.error('Error fetching results:', err);
@@ -323,7 +323,7 @@ const JobDetail = () => {
     setLogsLoading(true);
     
     try {
-      const response = await axios.get(`/api/jobs/${jobId}/logs`);
+      const response = await api.get(`/jobs/${jobId}/logs`);
       setLogs(response.data);
     } catch (err) {
       console.error('Error fetching logs:', err);
@@ -357,7 +357,7 @@ const JobDetail = () => {
   // Download document
   const handleDownloadDocument = async (documentId, filename) => {
     try {
-      const response = await axios.get(`/api/documents/${documentId}/download`, {
+      const response = await api.get(`/documents/${documentId}/download`, {
         responseType: 'blob'
       });
       
@@ -377,7 +377,7 @@ const JobDetail = () => {
   // Download result
   const handleDownloadResult = async (resultId, filename) => {
     try {
-      const response = await axios.get(`/api/results/${resultId}/download`, {
+      const response = await api.get(`/results/${resultId}/download`, {
         responseType: 'blob'
       });
       
@@ -399,7 +399,7 @@ const JobDetail = () => {
     setActionInProgress(true);
     
     try {
-      await axios.post(`/api/jobs/${jobId}/cancel`);
+      await api.post(`/jobs/${jobId}/cancel`);
       setShowCancelDialog(false);
       handleRefresh();
     } catch (err) {
@@ -414,7 +414,7 @@ const JobDetail = () => {
     setActionInProgress(true);
     
     try {
-      await axios.post(`/api/jobs/${jobId}/resume`);
+      await api.post(`/jobs/${jobId}/resume`);
       handleRefresh();
     } catch (err) {
       console.error('Error resuming job:', err);
@@ -428,7 +428,7 @@ const JobDetail = () => {
     setActionInProgress(true);
     
     try {
-      await axios.delete(`/api/jobs/${jobId}`);
+      await api.delete(`/jobs/${jobId}`);
       setShowDeleteDialog(false);
       navigate('/jobs');
     } catch (err) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Button, 
@@ -26,6 +26,15 @@ const Login = () => {
   // Get redirect path from location state or default to dashboard
   const from = location.state?.from?.pathname || '/dashboard';
 
+  // Check for auth errors in sessionStorage (from redirect)
+  useEffect(() => {
+    const sessionError = sessionStorage.getItem('auth_error');
+    if (sessionError) {
+      setError(sessionError);
+      sessionStorage.removeItem('auth_error');
+    }
+  }, []);
+
   const formik = useFormik({
     initialValues: {
       username: '',
@@ -40,14 +49,24 @@ const Login = () => {
       setError('');
       
       try {
+        console.log('Submitting login form:', values.username);
         const result = await login(values.username, values.password);
+        console.log('Login result:', result);
+        
         if (result.success) {
+          console.log('Login successful, navigating to:', from);
           navigate(from, { replace: true });
         } else {
+          console.error('Login failed:', result.message);
           setError(result.message || 'Login failed. Please check your credentials.');
         }
       } catch (err) {
-        setError(err.response?.data?.message || 'An error occurred during login. Please try again.');
+        console.error('Unexpected error during login:', err);
+        if (err.response?.data?.message) {
+          setError(err.response.data.message);
+        } else {
+          setError('Invalid username or password. Please try again.');
+        }
       } finally {
         setLoading(false);
       }
@@ -70,10 +89,18 @@ const Login = () => {
             </Typography>
             
             {error && (
-              <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+              <Alert 
+                severity="error" 
+                sx={{ width: '100%', mb: 2 }}
+                variant="filled"
+              >
                 {error}
               </Alert>
             )}
+            
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
+              Using webpack proxy for API requests
+            </Typography>
             
             <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 1, width: '100%' }}>
               <TextField
@@ -116,21 +143,16 @@ const Login = () => {
                 {loading ? <CircularProgress size={24} /> : 'Sign In'}
               </Button>
               
-              <Grid container>
-                <Grid item xs>
-                  <MuiLink component={Link} to="/forgot-password" variant="body2">
-                    Forgot password?
-                  </MuiLink>
-                </Grid>
-                <Grid item>
-                  <MuiLink component={Link} to="/register" variant="body2">
-                    {"Don't have an account? Sign Up"}
-                  </MuiLink>
-                </Grid>
-              </Grid>
-              
-              <Box sx={{ mt: 3, textAlign: 'center' }}>
-                <MuiLink component={Link} to="/register-tenant" variant="body2">
+              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+                <MuiLink component={Link} to="/forgot-password" variant="body2">
+                  Forgot password?
+                </MuiLink>
+                
+                <MuiLink component={Link} to="/register" variant="body2">
+                  Don't have an account? Sign Up
+                </MuiLink>
+                
+                <MuiLink component={Link} to="/register-tenant" variant="body2" sx={{ mt: 0.5 }}>
                   Register a new tenant organization
                 </MuiLink>
               </Box>

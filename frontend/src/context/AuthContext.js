@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/axiosConfig';
 
 const AuthContext = createContext();
 
@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // No need to set axios defaults here, the api instance handles this
       fetchUserInfo();
     } else {
       setLoading(false);
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await axios.get('/api/auth/me');
+      const response = await api.get('/auth/me');
       setUser(response.data);
       setIsAuthenticated(true);
       
@@ -47,11 +47,25 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post('/api/auth/login', { username, password });
+      console.log('Attempting login for user:', username);
+      
+      // Use the api instance which leverages the webpack proxy
+      const response = await api.post('/auth/login', { 
+        username, 
+        password 
+      });
+      
+      console.log('Login response:', response.data);
+      
       const { token, ...userData } = response.data;
       
+      if (!token) {
+        console.error('No token received in response');
+        return { success: false, message: 'Authentication failed: No token received' };
+      }
+      
       localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // The api instance will automatically use this token for future requests
       
       setUser(userData);
       setIsAuthenticated(true);
@@ -61,17 +75,19 @@ export const AuthProvider = ({ children }) => {
       setIsAdmin(roles.includes('ADMIN') || roles.includes('SYSTEM_ADMIN'));
       setIsSystemAdmin(roles.includes('SYSTEM_ADMIN'));
       
-      return userData;
+      return { success: true, user: userData };
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.response?.data?.message || 'Invalid credentials');
-      throw err;
+      const errorMessage = err.response?.data?.message || 
+                        (err.response?.status === 401 ? 'Invalid username or password' : 
+                        'Unable to connect to authentication service');
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);

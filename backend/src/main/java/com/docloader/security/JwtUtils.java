@@ -23,17 +23,24 @@ public class JwtUtils {
 
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+        log.info("Generating JWT token for user: {}", userPrincipal.getUsername());
+
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
+        log.debug("Token will expire at: {}", expiryDate);
 
         return Jwts.builder()
                 .setSubject(userPrincipal.getUsername())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
                 .signWith(key(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
     private Key key() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        log.debug("JWT secret key length (decoded): {}", keyBytes.length);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String getUserNameFromJwtToken(String token) {
@@ -47,11 +54,26 @@ public class JwtUtils {
 
     public boolean validateJwtToken(String authToken) {
         try {
-            Jwts.parserBuilder()
+            log.debug("Validating JWT token...");
+            
+            // Parse and validate the token
+            Claims claims = Jwts.parserBuilder()
                     .setSigningKey(key())
                     .build()
-                    .parseClaimsJws(authToken);
+                    .parseClaimsJws(authToken)
+                    .getBody();
+            
+            // Check if token is expired
+            Date expiration = claims.getExpiration();
+            Date now = new Date();
+            if (expiration.before(now)) {
+                log.warn("JWT token is expired. Expiration: {}, Current time: {}", expiration, now);
+                return false;
+            }
+            
+            log.debug("JWT token is valid, subject: {}", claims.getSubject());
             return true;
+            
         } catch (MalformedJwtException e) {
             log.error("Invalid JWT token: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
@@ -60,6 +82,8 @@ public class JwtUtils {
             log.error("JWT token is unsupported: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
             log.error("JWT claims string is empty: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error during JWT validation: {}", e.getMessage(), e);
         }
 
         return false;

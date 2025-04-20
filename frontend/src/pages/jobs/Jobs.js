@@ -33,7 +33,7 @@ import {
   Visibility,
   CloudUpload
 } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../../services/axiosConfig';
 
 // Status color mapping
 const statusColors = {
@@ -62,7 +62,7 @@ const Jobs = () => {
       setLoading(true);
       setError('');
       
-      const response = await axios.get('/api/jobs', {
+      const response = await api.get('/jobs', {
         params: {
           page: page + 1,
           limit: rowsPerPage,
@@ -138,7 +138,7 @@ const Jobs = () => {
     if (!jobToDelete) return;
     
     try {
-      await axios.delete(`/api/jobs/${jobToDelete}`);
+      await api.delete(`/jobs/${jobToDelete}`);
       fetchJobs();
       setDeleteDialogOpen(false);
       setJobToDelete(null);
