@@ -32,13 +32,13 @@ public class TenantController {
     private final S3BucketConfigService s3BucketConfigService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<List<Tenant>> getAllTenants() {
         return ResponseEntity.ok(tenantService.getAllTenants());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<Tenant> getTenantById(@PathVariable UUID id) {
         return tenantService.getTenantById(id)
                 .map(ResponseEntity::ok)
@@ -46,7 +46,7 @@ public class TenantController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<Tenant> createTenant(@Valid @RequestBody TenantRequest tenantRequest) {
         try {
             Tenant tenant = new Tenant();
@@ -124,6 +124,7 @@ public class TenantController {
     }
 
     @PostMapping("/register")
+    // Public endpoint, no authorization required
     public ResponseEntity<Tenant> registerTenant(@Valid @RequestBody TenantRequest tenantRequest) {
         try {
             // This is a public endpoint to register new tenants
@@ -204,7 +205,7 @@ public class TenantController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<Tenant> updateTenant(@PathVariable UUID id, @Valid @RequestBody TenantRequest tenantRequest) {
         try {
             Tenant existingTenant = tenantService.getTenantById(id)
@@ -267,7 +268,7 @@ public class TenantController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<Void> deleteTenant(@PathVariable UUID id) {
         try {
             tenantService.deleteTenant(id);

@@ -16,7 +16,7 @@ import NotFound from './pages/NotFound';
 import { useAuth } from './context/AuthContext';
 
 function App() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSystemAdmin } = useAuth();
 
   return (
     <Routes>
@@ -64,16 +64,16 @@ function App() {
         </MainLayout>
       } />
       
-      {/* Admin-only routes */}
+      {/* System Admin-only routes */}
       <Route path="/tenants" element={
         <MainLayout>
-          {isAdmin ? <TenantList /> : <Navigate to="/dashboard" replace />}
+          {isSystemAdmin ? <TenantList /> : <Navigate to="/dashboard" replace />}
         </MainLayout>
       } />
       
       <Route path="/tenants/:id" element={
         <MainLayout>
-          {isAdmin ? <TenantDetail /> : <Navigate to="/dashboard" replace />}
+          {isSystemAdmin ? <TenantDetail /> : <Navigate to="/dashboard" replace />}
         </MainLayout>
       } />
       

@@ -108,8 +108,13 @@
         <comment>Insert default roles</comment>
         
         <insert tableName="roles" schemaName="app">
+            <column name="name" value="SYSTEM_ADMIN"/>
+            <column name="description" value="System administrator with full privileges including tenant management"/>
+        </insert>
+        
+        <insert tableName="roles" schemaName="app">
             <column name="name" value="ADMIN"/>
-            <column name="description" value="Administrator with full privileges"/>
+            <column name="description" value="Tenant administrator with privileges within their own tenant"/>
         </insert>
         
         <insert tableName="roles" schemaName="app">

@@ -20,5 +20,8 @@
 
     <!-- Include permissions for document tables -->
     <include file="changes/00005-grant-document-permissions.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Include test admin user creation -->
+    <include file="changes/00006-create-test-admin.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog> 

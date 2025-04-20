@@ -1,103 +1,102 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
     const token = localStorage.getItem('token');
+    
     if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        const currentTime = Date.now() / 1000;
-        
-        if (decoded.exp < currentTime) {
-          // Token is expired
-          logout();
-        } else {
-          // Set auth header for all future requests
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          
-          // Fetch current user info
-          axios.get('/api/auth/me')
-            .then(response => {
-              setCurrentUser(response.data);
-              setLoading(false);
-            })
-            .catch(err => {
-              console.error('Error fetching user data:', err);
-              logout();
-              setLoading(false);
-            });
-        }
-      } catch (err) {
-        console.error('Error decoding token:', err);
-        logout();
-        setLoading(false);
-      }
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      fetchUserInfo();
     } else {
       setLoading(false);
     }
   }, []);
 
-  const login = async (username, password) => {
+  const fetchUserInfo = async () => {
     try {
-      setError(null);
-      const response = await axios.post('/api/auth/login', { username, password });
-      const { token, id, username: user, email, tenantId, roles } = response.data;
+      const response = await axios.get('/api/auth/me');
+      setUser(response.data);
+      setIsAuthenticated(true);
       
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Check roles
+      const roles = response.data.roles || [];
+      setIsAdmin(roles.includes('ADMIN') || roles.includes('SYSTEM_ADMIN'));
+      setIsSystemAdmin(roles.includes('SYSTEM_ADMIN'));
       
-      setCurrentUser({ id, username: user, email, tenantId, roles });
-      return { success: true };
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to login');
-      return { success: false, message: err.response?.data?.message || 'Failed to login' };
+      console.error('Error fetching user info:', err);
+      logout();
+    } finally {
+      setLoading(false);
     }
   };
 
-  const register = async (userData) => {
+  const login = async (username, password) => {
     try {
-      setError(null);
-      const response = await axios.post('/api/auth/register', userData);
-      const { token, id, username, email, tenantId, roles } = response.data;
+      const response = await axios.post('/api/auth/login', { username, password });
+      const { token, ...userData } = response.data;
       
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      setCurrentUser({ id, username, email, tenantId, roles });
-      return { success: true };
+      setUser(userData);
+      setIsAuthenticated(true);
+      
+      // Check roles
+      const roles = userData.roles || [];
+      setIsAdmin(roles.includes('ADMIN') || roles.includes('SYSTEM_ADMIN'));
+      setIsSystemAdmin(roles.includes('SYSTEM_ADMIN'));
+      
+      return userData;
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to register');
-      return { success: false, message: err.response?.data?.message || 'Failed to register' };
+      console.error('Login error:', err);
+      setError(err.response?.data?.message || 'Invalid credentials');
+      throw err;
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     delete axios.defaults.headers.common['Authorization'];
-    setCurrentUser(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    setIsSystemAdmin(false);
+  };
+
+  const refreshUserInfo = () => {
+    fetchUserInfo();
   };
 
   const value = {
-    currentUser,
+    user,
+    isAuthenticated,
+    isAdmin,
+    isSystemAdmin,
     loading,
     error,
     login,
-    register,
     logout,
-    isAuthenticated: !!currentUser,
-    isAdmin: currentUser?.roles?.includes('ADMIN') || false
+    refreshUserInfo
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 }; 
